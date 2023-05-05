@@ -40,7 +40,7 @@
   <p class="alert">{alert}</p>
 {/if}
 <!-- {#if form?.data?.generateGameError}
-  <p class="alert">{form.dataset_dev.generateGameError}</p>
+  <p class="alert">{form.dataset_dev.generateGameError}</p> gah
 {/if} -->
 <form
   action="generateGame"
