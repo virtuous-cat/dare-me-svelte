@@ -6,24 +6,43 @@
   } from "../../../lib/gametypes";
   import type { ServerChat } from "../../../lib/gametypes";
   import { goto } from "$app/navigation";
+  import { onMount } from "svelte";
 
-  const clientPlayerName = sessionStorage.getItem("playerName") ?? "";
-  const clientPlayerId = sessionStorage.getItem("playerId") ?? "";
-  const gameCode = sessionStorage.getItem("gameCode") ?? "";
-
-  if (!clientPlayerId || !clientPlayerName || !gameCode) {
-    goto("/?message=gameerror");
-  }
+  let clientPlayerName: string;
+  let clientPlayerId: string;
+  let gameCode: string;
 
   const socket: Socket<ServerToClientEvents, ClientToServerEvents> = io({
     autoConnect: false,
   });
-  socket.auth = {
-    gameRoom: gameCode,
-    playerId: clientPlayerId,
-    playerName: clientPlayerName,
-  };
-  socket.connect();
+
+  function wipeStorage() {
+    sessionStorage.removeItem("gameCode");
+    sessionStorage.removeItem("playerId");
+    sessionStorage.removeItem("playerName");
+  }
+
+  onMount(() => {
+    clientPlayerName = sessionStorage.getItem("playerName") ?? "";
+    clientPlayerId = sessionStorage.getItem("playerId") ?? "";
+    gameCode = sessionStorage.getItem("gameCode") ?? "";
+
+    if (!(clientPlayerId && clientPlayerName && gameCode)) {
+      wipeStorage();
+      goto("/?message=gameerror");
+    }
+    socket.auth = {
+      gameRoom: gameCode,
+      playerId: clientPlayerId,
+      playerName: clientPlayerName,
+    };
+    socket.connect();
+
+    return () => {
+      socket.disconnect();
+      socket.off("connect_error");
+    };
+  });
 
   let chatlog: ServerChat[] = [];
 
@@ -33,26 +52,60 @@
 
   let daree: string = "";
 
+  function sendChat() {
+    socket.emit("chat", outgoingChat);
+    chatlog = [
+      ...chatlog,
+      {
+        message: outgoingChat,
+        playerId: clientPlayerId,
+        playerName: clientPlayerName,
+      },
+    ];
+    outgoingChat = "";
+  }
+
+  socket.on("connect_error", (err) => {
+    if (err.message === "Invalid auth") {
+      wipeStorage();
+      goto("/?message=gameerror");
+    }
+  });
+
+  socket.on("disconnect", (reason) => {
+    if (reason === "io server disconnect") {
+      wipeStorage();
+      goto("/?message=gameerror");
+    }
+  });
+
   socket.on("serverChat", (message) => {
     chatlog = [...chatlog, message];
   });
 </script>
 
-<a href="/">Leave Game</a>
+<button
+  on:click={() => {
+    socket.disconnect();
+    wipeStorage();
+    goto("/");
+  }}>Leave Game</button
+>
 
 <div class="chat">
   <ul class="chatlog">
     {#each chatlog as chat}
-      <li>{chat}</li>
+      <li><strong>{chat.playerName}: </strong>{chat.message}</li>
     {/each}
   </ul>
-  <input type="text" name="chat" bind:value={outgoingChat} /><button
-    on:click={() => {
-      socket.emit("chat", outgoingChat);
-      chatlog = [
-        ...chatlog,
-        { message: outgoingChat, playerId: clientPlayerId },
-      ];
-    }}>Send</button
-  >
+  <input
+    type="text"
+    name="chat"
+    bind:value={outgoingChat}
+    on:keydown={(e) => {
+      if (e.key === "Enter") {
+        sendChat();
+      }
+    }}
+  /><button on:click={sendChat}>Send</button>
 </div>

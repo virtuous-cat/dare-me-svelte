@@ -8,10 +8,22 @@ export const GameCodeSchema = z.coerce
   .regex(/^[A-Z0-9]+$/, {
     message: "A valid Game Code may only include letters and numbers",
   });
+export const GameCodeValidator = z
+  .string()
+  .length(4, { message: "Game Code must be 4 characters" })
+  .regex(/^[A-Z0-9]+$/, {
+    message: "A valid Game Code may only include letters and numbers",
+  });
 
 export const PlayerNameSchema = z.coerce
   .string()
   .trim()
+  .max(50, { message: "Name must be less than 50 characters" })
+  .regex(/^[\p{L}\p{N}\u0020_-]+$/gu, {
+    message: "Invalid character(s) in name",
+  });
+export const PlayerNameValidator = z
+  .string()
   .max(50, { message: "Name must be less than 50 characters" })
   .regex(/^[\p{L}\p{N}\u0020_-]+$/gu, {
     message: "Invalid character(s) in name",
@@ -38,6 +50,7 @@ export type Players = z.infer<typeof PlayersSchema>;
 
 export const ServerChatSchema = z.object({
   playerId: PlayerIdSchema,
+  playerName: PlayerNameSchema,
   message: z.string(),
 });
 

@@ -12,6 +12,10 @@
   let join: HTMLDialogElement;
   let create: HTMLDialogElement;
   let alert: string;
+  let generating: boolean = false;
+  let finding: boolean = false;
+  let creating: boolean = false;
+  let joining: boolean = false;
   $: switch ($page.url.searchParams.get("message")) {
     case "gameerror":
       alert = "Error initializing game, please try again";
@@ -43,34 +47,50 @@
   <p class="alert">{form.dataset_dev.generateGameError}</p> gah
 {/if} -->
 <form
-  action="generateGame"
+  method="POST"
+  action="?/generateGame"
   use:enhance={() => {
+    generating = true;
     return async ({ result, update }) => {
       if (result.type === "success") {
         sessionStorage.setItem("gameCode", result.data?.gameCode);
         console.log("stored gameCode", result.data?.gameCode);
       }
-      update();
+      await update();
+      generating = false;
     };
   }}
 >
-  <button>Start a New Game</button>
+  <button disabled={generating || finding || creating || joining}
+    >Start a New Game
+    {#if generating}
+      <span>Loading...</span>
+    {/if}
+  </button>
 </form>
 <p>or</p>
 <form
-  action="findGame"
+  method="POST"
+  action="?/findGame"
   use:enhance={() => {
+    finding = true;
     return async ({ result, update }) => {
       if (result.type === "success") {
         sessionStorage.setItem("gameCode", result.data?.verifiedCode);
-        console.log("stored gameCode", result.data?.gameCode);
+        console.log("stored gameCode", result.data?.verifiedCode);
       }
-      update();
+      await update();
+      finding = false;
     };
   }}
 >
   <label>
-    Game Code: <input name="gameCode" type="text" bind:value={gameCode} />
+    Game Code: <input
+      name="gameCode"
+      type="text"
+      bind:value={gameCode}
+      disabled={generating || finding || creating || joining}
+    />
   </label>
   {#if form?.findGameErrors}
     {#each form.findGameErrors._errors as errorMessage}
@@ -80,15 +100,28 @@
   {#each gameWarnings as gameWarning}
     <p class="alert">{gameWarning}</p>
   {/each}
-  <button disabled={!parsedCode.success}>Join Game</button>
+  <button
+    disabled={!parsedCode.success ||
+      generating ||
+      finding ||
+      creating ||
+      joining}
+    >Join Game
+    {#if finding}
+      <span>Loading...</span>
+    {/if}
+  </button>
 </form>
 <dialog bind:this={create}>
   <form
-    action="launchGame"
+    method="POST"
+    action="?/launchGame"
     use:enhance={({ data, cancel }) => {
+      creating = true;
       const code = sessionStorage.getItem("gameCode");
       if (!parsedName.success || !code) {
         cancel();
+        creating = false;
         return;
       }
       const playerId = crypto.randomUUID();
@@ -96,6 +129,10 @@
       sessionStorage.setItem("playerName", parsedName.data);
       data.set("gameCode", code);
       data.set("hostId", playerId);
+      return async ({ update }) => {
+        await update();
+        creating = false;
+      };
     }}
   >
     <label
@@ -103,28 +140,61 @@
         name="hostName"
         type="text"
         bind:value={playerName}
+        disabled={generating || finding || creating || joining}
       /></label
-    ><button disabled={!parsedName.success}>Launch Game</button>
+    >
+    <div class="button-wrapper">
+      <button
+        on:click|preventDefault={() => create.close()}
+        disabled={generating || finding || creating || joining}>Cancel</button
+      >
+      <button
+        disabled={!parsedName.success ||
+          generating ||
+          finding ||
+          creating ||
+          joining}
+        >Launch Game
+        {#if creating}
+          <span>Loading...</span>
+        {/if}
+      </button>
+    </div>
   </form>
 </dialog>
 <dialog bind:this={join}>
-  <form action="joinGame">
-    <label
-      >Name: <input
-        name="playerName"
-        type="text"
-        bind:value={playerName}
-      /></label
-    ><button
-      disabled={!parsedName.success}
+  <label
+    >Name: <input
+      name="playerName"
+      type="text"
+      bind:value={playerName}
+    /></label
+  >
+  <div class="button-wrapper">
+    <button
+      on:click|preventDefault={() => join.close()}
+      disabled={generating || finding || creating || joining}>Cancel</button
+    >
+    <button
+      disabled={!parsedName.success ||
+        generating ||
+        finding ||
+        creating ||
+        joining}
       on:click={() => {
         if (parsedName.success) {
+          joining = true;
           const playerId = crypto.randomUUID();
           sessionStorage.setItem("playerId", playerId);
           sessionStorage.setItem("playerName", parsedName.data);
+          joining = false;
           goto(`/games/${sessionStorage.getItem("gameCode")}`);
         }
-      }}>Launch Game</button
-    >
-  </form>
+      }}
+      >Launch Game
+      {#if joining}
+        <span>Loading...</span>
+      {/if}
+    </button>
+  </div>
 </dialog>

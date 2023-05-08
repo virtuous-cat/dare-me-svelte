@@ -15,6 +15,7 @@ export const actions = {
   findGame: async ({ request }) => {
     const data = await request.formData();
     const codeResult = GameCodeSchema.safeParse(data.get("gameCode"));
+    console.log("codeResult", codeResult);
     if (!codeResult.success) {
       const errorMessages = codeResult.error.format();
       return fail(400, {
@@ -32,7 +33,7 @@ export const actions = {
     // }
     return {
       gameFound: true,
-      verifiedCode: codeResult,
+      verifiedCode: codeResult.data,
     };
   },
   launchGame: async ({ request }) => {
