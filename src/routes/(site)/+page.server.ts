@@ -1,7 +1,8 @@
-import { GameCodeSchema, PlayerNameSchema } from "../../lib/gametypes.js";
+import { GameCodeSchema, PlayerNameSchema } from "$lib/gametypes.js";
 import { fail, redirect } from "@sveltejs/kit";
 
 import { customAlphabet } from "nanoid";
+import redis from "$lib/server/redis.js";
 
 const alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 const nanoid = customAlphabet(alphabet, 4);
@@ -10,6 +11,15 @@ export const actions = {
   generateGame: async () => {
     const newCode = nanoid();
     //TODO: check redis for existing game
+    const saved = await redis.hset(`game:${newCode}`, { turn: 0 });
+    if (saved === 0) {
+      console.log("failed to create game in redis");
+      return fail(500, {
+        gameGenerated: false,
+        generateGameError: { _errors: [`Problem creating game`] },
+      });
+    }
+    console.log(`game ${newCode} created in redis`, saved);
     return { gameCode: newCode, gameGenerated: true };
   },
   findGame: async ({ request }) => {
@@ -28,7 +38,7 @@ export const actions = {
     // if (!gameExists) {
     //   return fail(400, {
     //     gameFound: false,
-    //     findGameErrors: {_errors: `Unable to find game ${data.get("gameCode")}`},
+    //     findGameErrors: {_errors: [`Unable to find game ${data.get("gameCode")}`]},
     //   });
     // }
     return {
