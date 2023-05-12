@@ -1,10 +1,11 @@
 <script lang="ts">
-  import { customAlphabet } from "nanoid";
   import { goto } from "$app/navigation";
   import { page } from "$app/stores";
   import { GameCodeSchema, PlayerNameSchema } from "../../lib/gametypes";
   import { enhance } from "$app/forms";
-  import { dataset_dev } from "svelte/internal";
+  import Modal from "$lib/Modal.svelte";
+  import TextInput from "$lib/TextInput.svelte";
+  import Button from "$lib/Button.svelte";
 
   export let form;
   let gameCode: string = "";
@@ -23,20 +24,7 @@
     default:
       alert = "";
   }
-  $: parsedCode = GameCodeSchema.safeParse(gameCode);
-  $: gameWarnings =
-    gameCode && !parsedCode.success ? parsedCode.error.format()._errors : [""];
-  $: if (form?.gameGenerated) {
-    create.showModal();
-  }
-  $: if (form?.gameFound) {
-    join.showModal();
-  }
   $: parsedName = PlayerNameSchema.safeParse(playerName);
-  $: nameWarnings =
-    playerName && !parsedName.success
-      ? parsedName.error.format()._errors
-      : [""];
 </script>
 
 <h1>Dare Me</h1>
@@ -58,15 +46,13 @@
       }
       await update();
       generating = false;
+      create.showModal();
     };
   }}
 >
-  <button disabled={generating || finding || creating || joining}
+  <Button disabled={generating || finding || creating || joining}
     >Start a New Game
-    {#if generating}
-      <span>Loading...</span>
-    {/if}
-  </button>
+  </Button>
 </form>
 <p>or</p>
 <form
@@ -79,52 +65,47 @@
         sessionStorage.setItem("gameCode", result.data?.verifiedCode);
         console.log("stored gameCode", result.data?.verifiedCode);
       }
-      await update();
+      await update({ reset: false });
       finding = false;
+      join.showModal();
     };
   }}
 >
-  <label>
-    Game Code: <input
-      name="gameCode"
-      type="text"
-      bind:value={gameCode}
-      disabled={generating || finding || creating || joining}
-    />
-  </label>
+  <TextInput
+    name="gameCode"
+    bind:value={gameCode}
+    disabled={generating || finding || creating || joining}
+    label="Game Code:"
+    schema={GameCodeSchema}
+  />
   {#if form?.findGameErrors}
     {#each form.findGameErrors._errors as errorMessage}
       <p class="alert">{errorMessage}</p>
     {/each}
   {/if}
-  {#each gameWarnings as gameWarning}
-    <p class="alert">{gameWarning}</p>
-  {/each}
-  <button
-    disabled={!parsedCode.success ||
+  <Button
+    disabled={!GameCodeSchema.safeParse(gameCode).success ||
       generating ||
       finding ||
       creating ||
       joining}
+    loading={finding}
     >Join Game
-    {#if finding}
-      <span>Loading...</span>
-    {/if}
-  </button>
+  </Button>
 </form>
-<dialog bind:this={create}>
+<Modal bind:modal={create}>
   <form
     method="POST"
     action="?/launchGame"
     use:enhance={({ data, cancel }) => {
       creating = true;
       const code = sessionStorage.getItem("gameCode");
-      if (!parsedName.success || !code) {
+      const playerId = crypto.randomUUID();
+      if (!parsedName.success || !code || !playerId) {
         cancel();
         creating = false;
         return;
       }
-      const playerId = crypto.randomUUID();
       sessionStorage.setItem("playerId", playerId);
       sessionStorage.setItem("playerName", parsedName.data);
       data.set("gameCode", code);
@@ -135,66 +116,69 @@
       };
     }}
   >
-    <label
-      >Name: <input
-        name="hostName"
-        type="text"
-        bind:value={playerName}
-        disabled={generating || finding || creating || joining}
-      /></label
-    >
+    <TextInput
+      name="hostName"
+      label="Name:"
+      schema={PlayerNameSchema}
+      bind:value={playerName}
+      disabled={generating || finding || creating || joining}
+    />
     <div class="button-wrapper">
-      <button
-        on:click|preventDefault={() => create.close()}
-        disabled={generating || finding || creating || joining}>Cancel</button
+      <Button
+        on:click={(e) => {
+          e.preventDefault();
+          create.close();
+        }}
+        disabled={generating || finding || creating || joining}>Cancel</Button
       >
-      <button
+      <Button
         disabled={!parsedName.success ||
           generating ||
           finding ||
           creating ||
           joining}
+        loading={creating}
         >Launch Game
-        {#if creating}
-          <span>Loading...</span>
-        {/if}
-      </button>
+      </Button>
     </div>
   </form>
-</dialog>
-<dialog bind:this={join}>
-  <label
-    >Name: <input
-      name="playerName"
-      type="text"
-      bind:value={playerName}
-    /></label
-  >
+</Modal>
+<Modal bind:modal={join}>
+  <TextInput
+    name="playerName"
+    label="Name:"
+    schema={PlayerNameSchema}
+    bind:value={playerName}
+    disabled={generating || finding || creating || joining}
+  />
   <div class="button-wrapper">
-    <button
-      on:click|preventDefault={() => join.close()}
-      disabled={generating || finding || creating || joining}>Cancel</button
+    <Button
+      on:click={(e) => {
+        join.close();
+      }}
+      disabled={generating || finding || creating || joining}>Cancel</Button
     >
-    <button
+    <Button
       disabled={!parsedName.success ||
         generating ||
         finding ||
         creating ||
         joining}
       on:click={() => {
-        if (parsedName.success) {
-          joining = true;
-          const playerId = crypto.randomUUID();
-          sessionStorage.setItem("playerId", playerId);
-          sessionStorage.setItem("playerName", parsedName.data);
+        joining = true;
+        const playerId = crypto.randomUUID();
+        if (!parsedName.success || !playerId) {
+          alert = "Error launching game, please try again";
           joining = false;
-          goto(`/games/${sessionStorage.getItem("gameCode")}`);
+          join.close();
+          return;
         }
+        sessionStorage.setItem("playerId", playerId);
+        sessionStorage.setItem("playerName", parsedName.data);
+        goto(`/games/${sessionStorage.getItem("gameCode")}`);
       }}
+      loading={joining}
       >Launch Game
-      {#if joining}
-        <span>Loading...</span>
-      {/if}
-    </button>
+    </Button>
   </div>
-</dialog>
+</Modal>

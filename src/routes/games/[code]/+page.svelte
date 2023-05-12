@@ -7,6 +7,7 @@
   import type { ServerChat } from "../../../lib/gametypes";
   import { goto } from "$app/navigation";
   import { onMount } from "svelte";
+  import Button from "$lib/Button.svelte";
 
   let clientPlayerName: string;
   let clientPlayerId: string;
@@ -84,12 +85,12 @@
   });
 </script>
 
-<button
+<Button
   on:click={() => {
     socket.disconnect();
     wipeStorage();
     goto("/");
-  }}>Leave Game</button
+  }}>Leave Game</Button
 >
 
 <div class="chat">
@@ -99,7 +100,7 @@
     {/each}
   </ul>
   <input
-    type="text"
+    type="textbox"
     name="chat"
     bind:value={outgoingChat}
     on:keydown={(e) => {
@@ -107,5 +108,5 @@
         sendChat();
       }
     }}
-  /><button on:click={sendChat}>Send</button>
+  /><Button on:click={sendChat}>Send</Button>
 </div>
