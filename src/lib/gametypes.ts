@@ -19,30 +19,36 @@ export const PlayerNameSchema = z.coerce
   .string()
   .trim()
   .max(50, { message: "Name must be less than 50 characters" })
-  .regex(/^[\p{L}\p{N}\u0020_-]+$/gu, {
+  .regex(/^[\p{L}\p{N}\u0020!@#$%^&*(){}:;?,.<>'"_-]+$/gu, {
     message: "Invalid character(s) in name",
   });
 export const PlayerNameValidator = z
   .string()
   .max(50, { message: "Name must be less than 50 characters" })
-  .regex(/^[\p{L}\p{N}\u0020_-]+$/gu, {
+  .regex(/^[\p{L}\p{N}\u0020!@#$%^&*(){}:;?,.<>'"_-]+$/gu, {
     message: "Invalid character(s) in name",
   });
 
 export const PlayerIdSchema = z.string().uuid({ message: "Invalid Player ID" });
 
+export const GameDareSchema = z.object({
+  dareId: z.string().cuid(),
+  dareText: z.string().max(700, { message: "Dare text max 700 characters" }),
+});
+
 export const PlayerSchema = z.object({
   playerId: PlayerIdSchema,
   playerName: PlayerNameSchema,
-  dares: z
-    .object({
-      dareId: z.string().cuid(),
-      dareText: z.string(),
-    })
-    .array(),
+  dares: GameDareSchema.array(),
 });
 
 export type Player = z.infer<typeof PlayerSchema>;
+
+export const RedisPlayerSchema = PlayerSchema.extend({
+  turns: z.number().int().nonnegative(),
+});
+
+export type RedisPlayer = z.infer<typeof RedisPlayerSchema>;
 
 export const PlayersSchema = PlayerSchema.array();
 

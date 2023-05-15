@@ -1,0 +1,61 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Dare {
+  /// @zod.string.cuid()
+  id             String      @id @default(cuid())
+  /// @zod.string.min(1, {message: "Dare text cannot be an empty string"}).max(300, {message: "Dare text max 300 characters"})
+  text           String      @unique
+  parent         Dare?       @relation("ParentChildren", fields: [parentId], references: [id])
+  parentId       String?
+  children       Dare[]      @relation("ParentChildren")
+  /// "pending" | "active" | "disabled"
+  status         Status      @default(pending)
+  partnered      Boolean
+  /// categories: "kink" "sex" "foreplay" "flirty" "truth" "unsorted"
+  category       Category    @default(unsorted)
+  /// min interaction: "unmasked" "physical" "video" "audio" "chat" "unsorted"
+  minInteraction Interaction @default(unsorted)
+  tags           Tag[]
+  /// time in ms
+  timer          Int?
+}
+
+enum Status {
+  pending
+  active
+  disabled
+}
+
+enum Category {
+  kink
+  sex
+  foreplay
+  flirty
+  truth
+  unsorted
+}
+
+enum Interaction {
+  unmasked
+  physical
+  video
+  audio
+  chat
+  unsorted
+}
+
+model Tag {
+  id    Int    @id @default(autoincrement())
+  name  String @unique
+  dares Dare[]
+}
