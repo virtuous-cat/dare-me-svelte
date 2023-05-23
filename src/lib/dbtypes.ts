@@ -6,7 +6,7 @@ export const TagSchema = z.object({
   name: z.string(),
 });
 
-export const DARE_STATUS = z.enum(["pending", "active", "disabled"]);
+export const DARE_STATUS = z.enum(["pending", "public", "private", "disabled"]);
 export type DareStatus = z.infer<typeof DARE_STATUS>;
 
 export const CATEGORY = z.enum([
@@ -40,12 +40,17 @@ export const DefaultDbDareSchema = GameDareSchema.extend({
 
 export type DefaultDbDare = z.infer<typeof DefaultDbDareSchema>;
 
-export const DareDbOutputSchema = DefaultDbDareSchema.extend({
+export const DareWithTagsSchema = DefaultDbDareSchema.extend({
   tags: TagSchema.shape.name.array(),
-  children: GameDareSchema.shape.dareId.array(),
 });
 
-export type DareDbOutput = z.infer<typeof DareDbOutputSchema>;
+export type DarewithTags = z.infer<typeof DareWithTagsSchema>;
+
+export const DareWithChildrenSchema = DareWithTagsSchema.extend({
+  children: DareWithTagsSchema.array(),
+});
+
+export type DareWithChildren = z.infer<typeof DareWithChildrenSchema>;
 
 export const DareDbInputSchema = GameDareSchema.partial({
   dareId: true,

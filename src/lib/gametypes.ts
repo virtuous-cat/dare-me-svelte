@@ -1,3 +1,5 @@
+import { CATEGORY } from "./dbtypes";
+import { INTERACTION } from "./dbtypes";
 import { z } from "zod";
 
 export const GameCodeSchema = z.coerce
@@ -44,7 +46,7 @@ export const PlayerSchema = z.object({
 
 export type Player = z.infer<typeof PlayerSchema>;
 
-export const RedisPlayerSchema = PlayerSchema.extend({
+export const RedisPlayerSchema = PlayerSchema.omit({ dares: true }).extend({
   turns: z.number().int().nonnegative(),
 });
 
@@ -53,6 +55,12 @@ export type RedisPlayer = z.infer<typeof RedisPlayerSchema>;
 export const PlayersSchema = PlayerSchema.array();
 
 export type Players = z.infer<typeof PlayersSchema>;
+
+export const GameOptionsSchema = z.object({
+  hostId: PlayerIdSchema,
+  interaction: INTERACTION,
+  categories: CATEGORY.array(),
+});
 
 export const ServerChatSchema = z.object({
   playerId: PlayerIdSchema,

@@ -18,7 +18,7 @@ model Dare {
   parent         Dare?       @relation("ParentChildren", fields: [parentId], references: [id])
   parentId       String?
   children       Dare[]      @relation("ParentChildren")
-  /// "pending" | "active" | "disabled"
+  /// "pending" | "public" | "private" | "disabled"
   status         Status      @default(pending)
   partnered      Boolean
   /// categories: "kink" "sex" "foreplay" "flirty" "truth" "unsorted"
@@ -32,7 +32,8 @@ model Dare {
 
 enum Status {
   pending
-  active
+  public
+  private
   disabled
 }
 
