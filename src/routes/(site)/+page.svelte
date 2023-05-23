@@ -6,6 +6,12 @@
   import Modal from "$lib/Modal.svelte";
   import TextInput from "$lib/TextInput.svelte";
   import Button from "$lib/Button.svelte";
+  import {
+    CATEGORY,
+    INTERACTION,
+    type Category,
+    type Interaction,
+  } from "$lib/dbtypes";
 
   export let form;
   let gameCode: string = "";
@@ -17,6 +23,12 @@
   let finding: boolean = false;
   let creating: boolean = false;
   let joining: boolean = false;
+  let interactions: Interaction;
+  let categories: Category[];
+  let unmasked: boolean = false;
+  let nameErrors = [""];
+  let codeErrors = [""];
+  let categoryError: string = "";
   $: switch ($page.url.searchParams.get("message")) {
     case "gameerror":
       alert = "Error initializing game, please try again";
@@ -27,13 +39,20 @@
   $: parsedName = PlayerNameSchema.safeParse(playerName);
 </script>
 
-<h1>Dare Me</h1>
+<h1 class="logo-font">Dare Me</h1>
 {#if alert}
   <p class="alert">{alert}</p>
 {/if}
-<!-- {#if form?.data?.generateGameError}
-  <p class="alert">{form.dataset_dev.generateGameError}</p> gah
-{/if} -->
+{#if form?.generateGameErrors}
+  {#each form.generateGameErrors._errors as errorMessage}
+    <p class="alert">{errorMessage}</p>
+  {/each}
+{/if}
+{#if form?.launchGameErrors}
+  {#each form.launchGameErrors._errors as errorMessage}
+    <p class="alert">{errorMessage}</p>
+  {/each}
+{/if}
 <form
   method="POST"
   action="?/generateGame"
@@ -58,8 +77,15 @@
 <form
   method="POST"
   action="?/findGame"
-  use:enhance={() => {
+  use:enhance={({ cancel }) => {
     finding = true;
+    const parsedCode = GameCodeSchema.safeParse(gameCode);
+    if (!parsedCode.success) {
+      cancel();
+      nameErrors = parsedCode.error.format()._errors;
+      finding = false;
+      return;
+    }
     return async ({ result, update }) => {
       if (result.type === "success") {
         sessionStorage.setItem("gameCode", result.data?.verifiedCode);
@@ -77,6 +103,7 @@
     disabled={generating || finding || creating || joining}
     label="Game Code:"
     schema={GameCodeSchema}
+    warnings={codeErrors}
   />
   {#if form?.findGameErrors}
     {#each form.findGameErrors._errors as errorMessage}
@@ -84,45 +111,196 @@
     {/each}
   {/if}
   <Button
-    disabled={!GameCodeSchema.safeParse(gameCode).success ||
-      generating ||
-      finding ||
-      creating ||
-      joining}
+    disabled={generating || finding || creating || joining}
     loading={finding}
     >Join Game
   </Button>
 </form>
 <Modal bind:modal={create}>
+  <TextInput
+    name="hostName"
+    label="Name:"
+    schema={PlayerNameSchema}
+    bind:value={playerName}
+    disabled={generating || finding || creating || joining}
+    warnings={nameErrors}
+  />
   <form
     method="POST"
     action="?/launchGame"
     use:enhance={({ data, cancel }) => {
       creating = true;
+      if (!parsedName.success) {
+        cancel();
+        nameErrors = parsedName.error.format()._errors;
+        creating = false;
+        return;
+      }
+      if (!categories.length) {
+        cancel();
+        categoryError = "Please select at least one category.";
+        creating = false;
+        return;
+      }
       const code = sessionStorage.getItem("gameCode");
       const playerId = crypto.randomUUID();
-      if (!parsedName.success || !code || !playerId) {
+      if (!code || !playerId) {
         cancel();
+        alert = "Error launching game, please try again";
         creating = false;
+        create.close();
         return;
       }
       sessionStorage.setItem("playerId", playerId);
       sessionStorage.setItem("playerName", parsedName.data);
       data.set("gameCode", code);
       data.set("hostId", playerId);
+      if (unmasked) {
+        data.set("interaction", INTERACTION.Enum.unmasked);
+      }
       return async ({ update }) => {
         await update();
         creating = false;
       };
     }}
   >
-    <TextInput
-      name="hostName"
-      label="Name:"
-      schema={PlayerNameSchema}
-      bind:value={playerName}
-      disabled={generating || finding || creating || joining}
-    />
+    <fieldset>
+      <legend>
+        Choose which categories of dares will be available for players to choose
+        from:
+        <small
+          >(This will only affect which dares are listed from the database, and
+          will not limit dares the players create themselves.)</small
+        >
+      </legend>
+      {#if categoryError}
+        <p class="alert">{categoryError}</p>
+      {/if}
+      <label>
+        <input
+          type="checkbox"
+          name="categories"
+          value={CATEGORY.Enum.kink}
+          bind:group={categories}
+          on:click={() => {
+            if (categoryError) {
+              categoryError = "";
+            }
+          }}
+        />
+        Kink (significant BDSM or fetish content, primarily not explicitly sexual)
+      </label>
+      <label>
+        <input
+          type="checkbox"
+          name="categories"
+          value={CATEGORY.Enum.sex}
+          bind:group={categories}
+          on:click={() => {
+            if (categoryError) {
+              categoryError = "";
+            }
+          }}
+        />
+        Sex (any direct genital contact, including masturbation)
+      </label>
+      <label>
+        <input
+          type="checkbox"
+          name="categories"
+          value={CATEGORY.Enum.foreplay}
+          bind:group={categories}
+          on:click={() => {
+            if (categoryError) {
+              categoryError = "";
+            }
+          }}
+        />
+        Foreplay (significant sexual interaction not involving bare genitals, e.g.
+        making out or nipple play)
+      </label>
+      <label>
+        <input
+          type="checkbox"
+          name="categories"
+          value={CATEGORY.Enum.flirty}
+          bind:group={categories}
+          on:click={() => {
+            if (categoryError) {
+              categoryError = "";
+            }
+          }}
+        />
+        Flirty (e.g. striptease or massage)
+      </label>
+      <label>
+        <input
+          type="checkbox"
+          name="categories"
+          value={CATEGORY.Enum.truth}
+          bind:group={categories}
+          on:click={() => {
+            if (categoryError) {
+              categoryError = "";
+            }
+          }}
+        />
+        Truth (may contain questions on topics related to any other category)
+      </label>
+    </fieldset>
+    <fieldset>
+      <legend>
+        How is your group playing today?
+        <small
+          >(Dares requiring higher levels of interaction will be omitted. Dare
+          Me is best paired with an external communications method, only text
+          chat is available in-game.)</small
+        >
+      </legend>
+      <label>
+        <input
+          type="radio"
+          name="interaction"
+          value={INTERACTION.enum.physical}
+          bind:group={interactions}
+        />
+        In-Person
+      </label>
+      {#if interactions === INTERACTION.Enum.physical}
+        <label
+          ><input type="checkbox" bind:checked={unmasked} />Include dares that
+          require at least one player to be unmasked</label
+        >
+      {/if}
+      <label>
+        <input
+          type="radio"
+          name="interaction"
+          value={INTERACTION.Enum.video}
+          bind:group={interactions}
+        />
+        Video Call
+      </label>
+      <label>
+        <input
+          type="radio"
+          name="interaction"
+          value={INTERACTION.Enum.audio}
+          bind:group={interactions}
+        />
+        Voice Call
+      </label>
+      <label>
+        <input
+          type="radio"
+          name="interaction"
+          value={INTERACTION.Enum.chat}
+          bind:group={interactions}
+          checked
+        />
+        Text Chat
+      </label>
+    </fieldset>
     <div class="button-wrapper">
       <Button
         on:click={(e) => {
@@ -132,11 +310,7 @@
         disabled={generating || finding || creating || joining}>Cancel</Button
       >
       <Button
-        disabled={!parsedName.success ||
-          generating ||
-          finding ||
-          creating ||
-          joining}
+        disabled={generating || finding || creating || joining}
         loading={creating}
         >Launch Game
       </Button>
@@ -150,6 +324,7 @@
     schema={PlayerNameSchema}
     bind:value={playerName}
     disabled={generating || finding || creating || joining}
+    warnings={nameErrors}
   />
   <div class="button-wrapper">
     <Button
@@ -159,15 +334,16 @@
       disabled={generating || finding || creating || joining}>Cancel</Button
     >
     <Button
-      disabled={!parsedName.success ||
-        generating ||
-        finding ||
-        creating ||
-        joining}
+      disabled={generating || finding || creating || joining}
       on:click={() => {
         joining = true;
+        if (!parsedName.success) {
+          nameErrors = parsedName.error.format()._errors;
+          joining = false;
+          return;
+        }
         const playerId = crypto.randomUUID();
-        if (!parsedName.success || !playerId) {
+        if (!playerId) {
           alert = "Error launching game, please try again";
           joining = false;
           join.close();
@@ -182,3 +358,10 @@
     </Button>
   </div>
 </Modal>
+
+<style>
+  h1 {
+    font-size: clamp(4.75rem, 20vw - 3rem, 7.5rem);
+    line-height: 1;
+  }
+</style>

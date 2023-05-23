@@ -4,9 +4,9 @@
   export let label: string;
   export let name: string;
   export let value: string;
-  export let disabled: boolean;
+  export let disabled: boolean = false;
   export let schema: z.KeySchema;
-  let warnings = [""];
+  export let warnings = [""];
   function checkValue() {
     const parsedValue = schema.safeParse(value);
     warnings = parsedValue.success ? [""] : parsedValue.error.format()._errors;
@@ -22,7 +22,6 @@
   type="text"
   bind:value
   {disabled}
-  on:blur={() => checkValue()}
   on:input={() => {
     if (warnings[0]) {
       checkValue();
