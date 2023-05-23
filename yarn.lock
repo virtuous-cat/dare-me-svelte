@@ -364,6 +364,11 @@
   resolved "https://registry.yarnpkg.com/@eslint/js/-/js-8.39.0.tgz#58b536bcc843f4cd1e02a7e6171da5c040f4d44b"
   integrity sha512-kf9RB0Fg7NZfap83B3QOqOGg9QmD9yBudqQXzzOtn3i4y7ZUXe5ONeW34Gwi+TxhH4mvj72R1Zc300KUMa9Bng==
 
+"@fontsource/modak@^5.0.0":
+  version "5.0.0"
+  resolved "https://registry.yarnpkg.com/@fontsource/modak/-/modak-5.0.0.tgz#8ad6cc380ab35e22acbd58571cd2dea026065f76"
+  integrity sha512-LuYugwICjMOWz+88uOkotkCDk4LsPRSzup9tSfWbP5eY2XTYvEiuNCCv5sc3HwRB+dGmR+u5qQ+JI1XNaWaeAQ==
+
 "@humanwhocodes/config-array@^0.11.8":
   version "0.11.8"
   resolved "https://registry.yarnpkg.com/@humanwhocodes/config-array/-/config-array-0.11.8.tgz#03595ac2075a4dc0f191cc2131de14fbd7d410b9"
