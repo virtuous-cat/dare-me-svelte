@@ -1,5 +1,5 @@
-import { CATEGORY } from "./dbtypes";
-import { INTERACTION } from "./dbtypes";
+import { CATEGORY, INTERACTION } from "./db.types";
+
 import { z } from "zod";
 
 export const GameCodeSchema = z.coerce

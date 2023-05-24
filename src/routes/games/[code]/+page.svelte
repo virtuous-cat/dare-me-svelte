@@ -3,8 +3,8 @@
   import type {
     ServerToClientEvents,
     ClientToServerEvents,
-  } from "../../../lib/gametypes";
-  import type { ServerChat } from "../../../lib/gametypes";
+  } from "$lib/game.types";
+  import type { ServerChat } from "$lib/game.types";
   import { goto } from "$app/navigation";
   import { onMount } from "svelte";
   import Button from "$lib/Button.svelte";

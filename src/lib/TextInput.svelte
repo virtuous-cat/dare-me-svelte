@@ -1,7 +1,8 @@
 <script lang="ts">
   import type { z } from "zod";
 
-  export let label: string;
+  export let label: string | undefined = undefined;
+  export let ariaLabel: string | undefined = undefined;
   export let name: string;
   export let value: string;
   export let disabled: boolean = false;
@@ -22,11 +23,13 @@
   type="text"
   bind:value
   {disabled}
+  aria-label={ariaLabel}
   on:input={() => {
     if (warnings[0]) {
       checkValue();
     }
   }}
+  on:keydown
 />
 {#each warnings as warning}
   <small class="alert">{warning}</small>

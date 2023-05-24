@@ -6,7 +6,7 @@ import {
   PlayerIdSchema,
   GameCodeValidator,
   PlayerNameValidator,
-} from "../src/lib/gametypes";
+} from "../src/lib/game.types";
 
 import { Server } from "socket.io";
 

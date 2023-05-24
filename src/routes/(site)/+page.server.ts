@@ -1,4 +1,4 @@
-import { GameCodeSchema, GameOptionsSchema } from "$lib/gametypes.js";
+import { GameCodeSchema, GameOptionsSchema } from "$lib/game.types.js";
 import { fail, redirect } from "@sveltejs/kit";
 
 import { customAlphabet } from "nanoid";

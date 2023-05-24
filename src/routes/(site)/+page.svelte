@@ -1,7 +1,7 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
   import { page } from "$app/stores";
-  import { GameCodeSchema, PlayerNameSchema } from "../../lib/gametypes";
+  import { GameCodeSchema, PlayerNameSchema } from "../../lib/game.types";
   import { enhance } from "$app/forms";
   import Modal from "$lib/Modal.svelte";
   import TextInput from "$lib/TextInput.svelte";
@@ -11,7 +11,7 @@
     INTERACTION,
     type Category,
     type Interaction,
-  } from "$lib/dbtypes";
+  } from "$lib/db.types";
 
   export let form;
   let gameCode: string = "";
