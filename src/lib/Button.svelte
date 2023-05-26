@@ -1,9 +1,10 @@
 <script lang="ts">
   export let disabled: boolean = false;
   export let loading: boolean = false;
+  export let className: string = "";
 </script>
 
-<button {disabled} on:click>
+<button class={className} {disabled} on:click>
   <slot />
   {#if loading}
     <span>...</span>
