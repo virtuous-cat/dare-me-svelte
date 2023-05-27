@@ -1,4 +1,4 @@
-import { CATEGORY, INTERACTION } from "./db.types";
+import { CATEGORY, GameDareSchema, INTERACTION } from "./db.types";
 
 import { z } from "zod";
 
@@ -32,11 +32,6 @@ export const PlayerNameValidator = z
   });
 
 export const PlayerIdSchema = z.string().uuid({ message: "Invalid Player ID" });
-
-export const GameDareSchema = z.object({
-  dareId: z.string().cuid(),
-  dareText: z.string().max(700, { message: "Dare text max 700 characters" }),
-});
 
 export const PlayerSchema = z.object({
   playerId: PlayerIdSchema,

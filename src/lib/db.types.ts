@@ -1,4 +1,3 @@
-import { GameDareSchema } from "./game.types";
 import { z } from "zod";
 
 export const TagSchema = z.object({
@@ -35,6 +34,11 @@ export const INTERACTION = z.enum([
 ]);
 export type Interaction = z.infer<typeof INTERACTION>;
 
+export const GameDareSchema = z.object({
+  dareId: z.string().cuid(),
+  dareText: z.string().max(700, { message: "Dare text max 700 characters" }),
+});
+
 export const DefaultDbDareSchema = GameDareSchema.extend({
   parentId: z.string().nullable(),
   status: DARE_STATUS,
@@ -52,11 +56,12 @@ export const DareWithTagsSchema = DefaultDbDareSchema.extend({
 
 export type DareWithTags = z.infer<typeof DareWithTagsSchema>;
 
-export const DareWithChildrenSchema = DareWithTagsSchema.extend({
-  children: DareWithTagsSchema.array(),
-});
+export type DareWithChildren = DareWithTags & { children: DareWithChildren[] };
 
-export type DareWithChildren = z.infer<typeof DareWithChildrenSchema>;
+export const DareWithChildrenSchema: z.ZodType<DareWithChildren> =
+  DareWithTagsSchema.extend({
+    children: z.lazy(() => DareWithChildrenSchema.array()),
+  });
 
 export const DareDbInputSchema = GameDareSchema.partial({
   dareId: true,

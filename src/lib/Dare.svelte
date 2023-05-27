@@ -10,9 +10,10 @@
   export let editable: boolean = false;
   export let withVariants: boolean = false;
   export let withDetails: boolean = false;
+  export let expand: boolean = false;
 
   let hidden: boolean = true;
-  let showVariants: boolean = false;
+  let showVariants: boolean = expand;
 </script>
 
 {#if editable}
@@ -37,14 +38,14 @@
             }}>{!hidden ? "Hide Details" : "Show Details"}</Button
           >
         </div>
+        {#if withVariants && dare?.children.length}
+          <Button
+            on:click={() => {
+              showVariants = !showVariants;
+            }}>{showVariants ? "Hide Variants" : "Show Variants"}</Button
+          >
+        {/if}
         <div class="details" class:hidden>
-          {#if withVariants && dare?.children.length}
-            <Button
-              on:click={() => {
-                showVariants = !showVariants;
-              }}>{showVariants ? "Hide Variants" : "Show Variants"}</Button
-            >
-          {/if}
           <p><strong>{dare?.partnered ? "Partnered" : "Solo"}</strong></p>
           {#if loggedIn}
             <p><strong>Status:</strong> {dare?.status}</p>
