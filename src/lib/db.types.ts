@@ -77,3 +77,9 @@ export const DareDbInputSchema = GameDareSchema.partial({
 });
 
 export type DareDbInput = z.infer<typeof DareDbInputSchema>;
+
+export type NewDareState = {
+  saving: boolean;
+  saved: boolean;
+  removed: boolean;
+};

@@ -16,6 +16,7 @@
   export let loggedIn: boolean = false;
   export let admin: boolean = false;
   export let dares: DareWithChildren[] = [];
+  export let tagFilter: string[] = [];
 
   let categoryFilter: Category[] = [];
   let interactionFilter: Interaction[] = [];
@@ -44,6 +45,13 @@
       dare.tags.filter((tag) => tag.name === search.toLowerCase()).length
         ? true
         : false;
+    const tagFilterFound =
+      !tagFilter.length ||
+      tagFilter.every(
+        (tag) => !!dare.tags.filter((dareTag) => dareTag.name === tag).length
+      )
+        ? true
+        : false;
     const textFound = !search
       ? true
       : dare.dareText.toLocaleLowerCase().includes(search.toLowerCase());
@@ -52,7 +60,8 @@
       categoryFound &&
       interactionFound &&
       statusFound &&
-      partneredFound
+      partneredFound &&
+      tagFilterFound
     );
   }
 
@@ -60,7 +69,8 @@
     categoryFilter.length ||
     interactionFilter.length ||
     statusFilter.length ||
-    search
+    search ||
+    tagFilter.length
   );
 
   $: filteredDares = !filtered

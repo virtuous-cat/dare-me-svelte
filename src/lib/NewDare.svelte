@@ -79,6 +79,9 @@
 <div class="wrapper">
   <div class="grid">
     <p contenteditable bind:textContent={newDareText} />
+    {#if newDareText.trim().length > 700}
+      <small class="alert">Dares must only contain upto 700 characters. Current count: {newDareText.trim().length}</small>
+    {/if}
     <div class="details">
       <select bind:value={newDarePartnered}>
         <option value={true}> Partnered </option>
@@ -175,7 +178,7 @@
       >
       <Button
         loading={saving}
-        disabled={saving}
+        disabled={saving || newDareText.trim().length > 700}
         on:click={() => {
           removeFromAll = true;
           dispatch("save", {

@@ -2,6 +2,7 @@
   import type { DareWithChildren } from "./db.types";
   import Button from "./Button.svelte";
   import NewDare from "./NewDare.svelte";
+  import { createEventDispatcher } from "svelte";
 
   export let dare: DareWithChildren | null = null;
   export let saving: boolean = false;
@@ -11,9 +12,12 @@
   export let withVariants: boolean = false;
   export let withDetails: boolean = false;
   export let expand: boolean = false;
+  export let filteredTags: string[] = [];
 
   let hidden: boolean = true;
   let showVariants: boolean = expand;
+
+  const dispatch = createEventDispatcher();
 </script>
 
 {#if editable}
@@ -60,7 +64,20 @@
           {#if dare?.tags.length}
             <ul class="tags" aria-labelledby="tags-label">
               {#each dare.tags as tag (tag.id)}
-                <li>{tag.name}</li>
+                <li>
+                  <button
+                    class="tag"
+                    aria-pressed={filteredTags.includes(tag.name)}
+                    on:click={() => {
+                      if (filteredTags.includes(tag.name)) {
+                        dispatch("unfilter-tag", { tagName: tag.name });
+                      }
+                      dispatch("filter-tag", { tagName: tag.name });
+                    }}
+                  >
+                    {tag.name}
+                  </button>
+                </li>
               {/each}
             </ul>
           {/if}
