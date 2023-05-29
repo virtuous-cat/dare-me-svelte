@@ -82,4 +82,5 @@ export type NewDareState = {
   saving: boolean;
   saved: boolean;
   removed: boolean;
+  errors: string[];
 };

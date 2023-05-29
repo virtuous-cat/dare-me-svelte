@@ -12,7 +12,7 @@ export async function POST({ request }) {
   const dareToSave = await request.json();
   const parsedDare = DareDbInputSchema.safeParse(dareToSave);
   if (!parsedDare.success) {
-    console.error(parsedDare.error.format()._errors);
+    console.error(parsedDare.error.format());
     throw error(400, { message: "Error in dare format" });
   }
   // TODO: save to db instead of id hack
@@ -35,7 +35,7 @@ export async function PUT({ request }) {
   const dareToUpdate = await request.json();
   const parsedDare = DareDbInputSchema.safeParse(dareToUpdate);
   if (!parsedDare.success) {
-    console.error(parsedDare.error.format()._errors);
+    console.error(parsedDare.error.format());
     throw error(400, { message: "Error in dare format" });
   }
   // TODO: save to db instead of id hack

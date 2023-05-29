@@ -1,7 +1,8 @@
 <script context="module" lang="ts">
   import type { DareDbInput } from "./db.types";
 
-  let newDares: (DareDbInput & { remove?: boolean })[] = [];
+  let newDares: (DareDbInput & { remove?: boolean; listPosition?: number })[] =
+    [];
 
   export function getAllNewDares() {
     return newDares.filter((dare) => !dare.remove);
@@ -28,6 +29,7 @@
   export let loggedIn: boolean = false;
   export let admin: boolean = false;
   export let editing: boolean = false;
+  export let listPosition: number | undefined = undefined;
 
   let removeFromAll: boolean = false;
   let newDareText = parentDare?.dareText ?? "";
@@ -58,7 +60,8 @@
   $: if (!editing) {
     newDares.push({
       remove: removeFromAll ? true : undefined,
-      dareText: newDareText,
+      listPosition,
+      dareText: newDareText.trim(),
       status: newDareStatus,
       partnered: newDarePartnered,
       category: newDareCategory,
@@ -80,7 +83,10 @@
   <div class="grid">
     <p contenteditable bind:textContent={newDareText} />
     {#if newDareText.trim().length > 700}
-      <small class="alert">Dares must only contain upto 700 characters. Current count: {newDareText.trim().length}</small>
+      <small class="alert"
+        >Dares must only contain upto 700 characters. Current count: {newDareText.trim()
+          .length}</small
+      >
     {/if}
     <div class="details">
       <select bind:value={newDarePartnered}>
