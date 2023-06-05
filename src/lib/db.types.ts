@@ -84,3 +84,13 @@ export type NewDareState = {
   removed: boolean;
   errors: string[];
 };
+
+export const MultiupdateOptionsSchema = z.object({
+  partnered: z.boolean().nullable(),
+  status: DARE_STATUS.nullable(),
+  category: CATEGORY.nullable(),
+  minInteraction: INTERACTION.nullable(),
+  tags: TagSchema.shape.name.array(),
+})
+
+export type MultiupdateOptions = z.infer<typeof MultiupdateOptionsSchema>

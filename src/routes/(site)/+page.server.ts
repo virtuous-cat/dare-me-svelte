@@ -1,6 +1,7 @@
 import { GameCodeSchema, GameOptionsSchema } from "$lib/game.types.js";
 import { fail, redirect } from "@sveltejs/kit";
 
+import { ADMIN_KEY } from "$env/static/private";
 import { customAlphabet } from "nanoid";
 import redis from "$lib/server/redis.js";
 
@@ -20,6 +21,15 @@ const generateCode = async (tries: number): Promise<string> => {
 };
 
 export const actions = {
+  login: async ({ request }) => {
+    const data = await request.formData();
+    const admin = data.get("adminKey") === ADMIN_KEY;
+    if (!admin) {
+      return fail(403, { loginError: "Permission Denied" });
+    }
+    return { admin };
+  },
+
   generateGame: async () => {
     try {
       const newCode = await generateCode(5);

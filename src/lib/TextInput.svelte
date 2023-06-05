@@ -3,7 +3,7 @@
 
   export let label: string | undefined = undefined;
   export let ariaLabel: string | undefined = undefined;
-  export let name: string;
+  export let name: string | undefined = undefined;
   export let value: string;
   export let disabled: boolean = false;
   export let schema: z.KeySchema;

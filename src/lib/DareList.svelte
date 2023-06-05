@@ -11,12 +11,24 @@
     DARE_STATUS,
   } from "./db.types";
   import Button from "./Button.svelte";
+  import { getContext } from "svelte";
+  import type { Writable } from "svelte/store";
 
   export let filterable: boolean = false;
   export let loggedIn: boolean = false;
   export let admin: boolean = false;
-  export let dares: DareWithChildren[] = [];
-  export let tagFilter: string[] = [];
+  export let dares: {
+    dare: DareWithChildren;
+    selected: boolean;
+    editable: boolean;
+    withNewVariant: boolean;
+    saving: boolean;
+    editingVariantId: string;
+    savingVariant: boolean;
+    selectedVariants: string[];
+  }[] = [];
+
+  const tagFilter = getContext<Writable<string[]>>("filteredTags");
 
   let categoryFilter: Category[] = [];
   let interactionFilter: Interaction[] = [];
@@ -46,8 +58,8 @@
         ? true
         : false;
     const tagFilterFound =
-      !tagFilter.length ||
-      tagFilter.every(
+      !$tagFilter.length ||
+      $tagFilter.every(
         (tag) => !!dare.tags.filter((dareTag) => dareTag.name === tag).length
       )
         ? true
@@ -70,16 +82,16 @@
     interactionFilter.length ||
     statusFilter.length ||
     search ||
-    tagFilter.length
+    $tagFilter.length
   );
 
   $: filteredDares = !filtered
     ? dares
-    : dares.filter((dare) => {
-        if (!dare.children.length) {
-          return checkDare(dare);
+    : dares.filter((statefulDare) => {
+        if (!statefulDare.dare.children.length) {
+          return checkDare(statefulDare.dare);
         }
-        return !!dare.children.filter(checkDare).length;
+        return !!statefulDare.dare.children.filter(checkDare).length;
       });
 </script>
 
@@ -258,11 +270,18 @@
         {/if}
       </fieldset>
     {/if}
-    <slot name="controls" />
+    {#if admin}
+      <slot name="controls" {filteredDares} />
+    {/if}
   </section>
 {/if}
 <ul aria-label="Dares" id="dare-list">
-  {#each filteredDares as dare (dare.dareId)}
-    <li><slot {dare} expand={filtered && !checkDare(dare)} /></li>
+  {#each filteredDares as statefulDare (statefulDare.dare.dareId)}
+    <li>
+      <slot
+        dare={statefulDare}
+        expand={filtered && !checkDare(statefulDare.dare)}
+      />
+    </li>
   {/each}
 </ul>

@@ -1,5 +1,10 @@
 <script lang="ts">
   import "@fontsource/modak";
+  import { setContext } from "svelte";
+  import { writable } from "svelte/store";
+
+  const admin = writable<boolean>(false);
+  setContext("admin", admin);
 </script>
 
 <slot />

@@ -2,7 +2,8 @@
   import type { DareWithChildren } from "./db.types";
   import Button from "./Button.svelte";
   import NewDare from "./NewDare.svelte";
-  import { createEventDispatcher } from "svelte";
+  import { createEventDispatcher, getContext } from "svelte";
+  import type { Writable } from "svelte/store";
 
   export let dare: DareWithChildren | null = null;
   export let saving: boolean = false;
@@ -12,7 +13,11 @@
   export let withVariants: boolean = false;
   export let withDetails: boolean = false;
   export let expand: boolean = false;
-  export let filteredTags: string[] = [];
+  export let editingVariantId: string = "";
+  export let savingVariant: boolean = false;
+  export let selectableVariants: boolean = false;
+  export let selectedVariants: string[] = [];
+  const filteredTags = getContext<Writable<string[]>>("filteredTags");
 
   let hidden: boolean = true;
   let showVariants: boolean = expand;
@@ -67,12 +72,15 @@
                 <li>
                   <button
                     class="tag"
-                    aria-pressed={filteredTags.includes(tag.name)}
+                    aria-pressed={$filteredTags.includes(tag.name)}
                     on:click={() => {
-                      if (filteredTags.includes(tag.name)) {
-                        dispatch("unfilter-tag", { tagName: tag.name });
+                      if ($filteredTags.includes(tag.name)) {
+                        $filteredTags = $filteredTags.filter(
+                          (filterTag) => filterTag !== tag.name
+                        );
+                        return;
                       }
-                      dispatch("filter-tag", { tagName: tag.name });
+                      $filteredTags = [...$filteredTags, tag.name];
                     }}
                   >
                     {tag.name}
@@ -96,8 +104,34 @@
     {#if withVariants && showVariants && dare?.children.length}
       <ul class="variants">
         {#each dare.children as variant (variant.dareId)}
-          <svelte:self dare={variant}
-            ><slot name="variant-buttons" slot="buttons" /></svelte:self
+          {#if admin && selectableVariants}
+            <input
+              type="checkbox"
+              on:click={(e) => {
+                if (e.currentTarget.checked) {
+                  dispatch("selectVariant", { variantId: variant.dareId });
+                } else {
+                  dispatch("deselectVariant", { variantId: variant.dareId });
+                }
+              }}
+              checked={selectedVariants.includes(variant.dareId)}
+            />
+          {/if}
+          <svelte:self
+            dare={variant}
+            editable={editingVariantId === variant.dareId}
+            {admin}
+            {loggedIn}
+            saving={savingVariant}
+            {withDetails}
+            on:discard={() =>
+              dispatch("variantDiscard", { variantId: variant.dareId })}
+            on:save={(e) => dispatch("variantSave", e.detail)}
+            ><slot
+              name="variant-buttons"
+              variantId={variant.dareId}
+              slot="buttons"
+            /></svelte:self
           >
         {/each}
       </ul>

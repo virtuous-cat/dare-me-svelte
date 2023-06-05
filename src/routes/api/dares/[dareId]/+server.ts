@@ -1,6 +1,6 @@
+import { DareDbInputSchema, GameDareSchema } from "$lib/db.types";
 import { error, json } from "@sveltejs/kit";
 
-import { DareDbInputSchema } from "$lib/db.types";
 import { dummyDares } from "$lib/utils";
 
 export async function GET({ params }) {
@@ -48,4 +48,17 @@ export async function PUT({ request }) {
   const dareUpdated = { ...parsedDare.data, tags: tagsWithIds };
 
   return json(dareUpdated, { status: 200 });
+}
+
+export async function DELETE({ request }) {
+  const { dareId } = await request.json();
+  const parsedDareId = GameDareSchema.shape.dareId.safeParse(dareId);
+
+  if (!parsedDareId.success) {
+    console.error(parsedDareId.error.format());
+    throw error(400, { message: "Error in dare id" });
+  }
+  // TODO: change status in db to disabled
+  console.log("dare disabled", parsedDareId.data)
+  return new Response(null, { status: 204 });
 }
