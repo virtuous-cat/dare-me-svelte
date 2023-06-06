@@ -1,6 +1,7 @@
 import { DareDbInputSchema, GameDareSchema } from "$lib/db.types";
 import { error, json } from "@sveltejs/kit";
 
+import cuid from "cuid";
 import { dummyDares } from "$lib/utils";
 
 export async function GET({ params }) {
@@ -24,8 +25,9 @@ export async function POST({ request }) {
   });
   const dareAdded = {
     ...parsedDare.data,
-    dareId: crypto.randomUUID,
+    dareId: cuid(),
     tags: tagsWithIds,
+    children: [],
   };
 
   return json(dareAdded, { status: 201 });
@@ -59,6 +61,6 @@ export async function DELETE({ request }) {
     throw error(400, { message: "Error in dare id" });
   }
   // TODO: change status in db to disabled
-  console.log("dare disabled", parsedDareId.data)
+  console.log("dare disabled", parsedDareId.data);
   return new Response(null, { status: 204 });
 }

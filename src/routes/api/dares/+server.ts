@@ -1,6 +1,7 @@
 import { error, json } from "@sveltejs/kit";
 
-import { DareDbInputSchema } from "$lib/db.types.js";
+import { DareDbInputSchema, type DareDbInput } from "$lib/db.types.js";
+import cuid from "cuid";
 import { dummyDares } from "$lib/utils";
 
 export async function GET() {
@@ -11,13 +12,17 @@ export async function GET() {
 
 export async function POST({ request }) {
   const daresToSave = await request.json();
-  const parsedDares = DareDbInputSchema.array().safeParse(daresToSave);
+  console.log(daresToSave);
+  const daresMap = new Map<string, DareDbInput>(daresToSave);
+  const parsedDares = DareDbInputSchema.array().safeParse(
+    Array.from(daresMap.values())
+  );
   if (!parsedDares.success) {
     console.error(parsedDares.error.format());
     throw error(400, { message: "Error in dare format" });
   }
   // TODO: save to db instead of id hack
-  const daresAdded = parsedDares.data.map((dare) => {
+  const daresAddedToDb = parsedDares.data.map((dare) => {
     const tagsWithIds = dare.tags?.map((tag) => {
       return {
         name: tag,
@@ -26,10 +31,13 @@ export async function POST({ request }) {
     });
     return {
       ...dare,
-      dareId: crypto.randomUUID,
+      dareId: cuid(),
       tags: tagsWithIds,
+      children: [],
     };
   });
+  // TODO: if any dares failed to save in db, return their dareToAddIds as
+  const failedIds: string[] = [];
 
-  return json(daresAdded, { status: 201 });
+  return json({ daresAddedToDb, failedIds }, { status: 201 });
 }

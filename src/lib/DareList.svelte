@@ -37,6 +37,12 @@
   let search: string = "";
 
   function checkDare(dare: DareWithChildren) {
+    console.log("categories", categoryFilter);
+    console.log("interactions", interactionFilter);
+    console.log("statuses", statusFilter);
+    console.log("partnered", partneredFilter);
+    console.log("search", search);
+    console.log("tags", $tagFilter);
     const partneredFound =
       partneredFilter.length !== 1 ||
       (partneredFilter[0] === "partnered" && dare.partnered) ||
@@ -82,16 +88,27 @@
     interactionFilter.length ||
     statusFilter.length ||
     search ||
-    $tagFilter.length
+    $tagFilter.length ||
+    partneredFilter.length === 1
   );
 
-  $: filteredDares = !filtered
+  $: filteredDares = !(
+    categoryFilter.length ||
+    interactionFilter.length ||
+    statusFilter.length ||
+    search ||
+    $tagFilter.length ||
+    partneredFilter.length === 1
+  )
     ? dares
     : dares.filter((statefulDare) => {
         if (!statefulDare.dare.children.length) {
           return checkDare(statefulDare.dare);
         }
-        return !!statefulDare.dare.children.filter(checkDare).length;
+        return (
+          !!statefulDare.dare.children.filter(checkDare).length ||
+          checkDare(statefulDare.dare)
+        );
       });
 </script>
 
@@ -103,8 +120,12 @@
       label="Search:"
       name="search"
     />
+    search value: {search}
+    filtered tags:
+    {#each $tagFilter as tag}{tag + ", "}{/each}
     <div>
       <h3>Filter:</h3>
+      filtered: {filtered.toString()}
       <Button
         on:click={() => {
           categoryFilter = [];
@@ -125,6 +146,8 @@
         Partnered
       </label>
     </fieldset>
+    partnered filter:
+    {#each partneredFilter as filter}{filter + ", "}{/each}
     <fieldset>
       <legend> Categories: </legend>
       <label>
@@ -178,6 +201,8 @@
         </label>
       {/if}
     </fieldset>
+    category filter:
+    {#each categoryFilter as filter}{filter + ", "}{/each}
     <fieldset>
       <legend> Minimum Interaction Required: </legend>
       <label>
@@ -231,6 +256,8 @@
         </label>
       {/if}
     </fieldset>
+    interaction filter:
+    {#each interactionFilter as filter}{filter + ", "}{/each}
     {#if loggedIn}
       <fieldset>
         <legend>Status:</legend>
@@ -269,6 +296,8 @@
           </label>
         {/if}
       </fieldset>
+      status filter:
+      {#each statusFilter as filter}{filter + ", "}{/each}
     {/if}
     {#if admin}
       <slot name="controls" {filteredDares} />

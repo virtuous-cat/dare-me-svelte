@@ -13,6 +13,8 @@
     type Interaction,
   } from "$lib/db.types";
 
+  console.log("(site) page in");
+
   export let form;
   let gameCode: string = "";
   let playerName: string = "";
@@ -24,7 +26,7 @@
   let creating: boolean = false;
   let joining: boolean = false;
   let interactions: Interaction;
-  let categories: Category[];
+  let categories: Category[] = [];
   let unmasked: boolean = false;
   let nameErrors = [""];
   let codeErrors = [""];
@@ -37,6 +39,8 @@
       alert = "";
   }
   $: parsedName = PlayerNameSchema.safeParse(playerName);
+
+  console.log("(site) page out");
 </script>
 
 <h1 class="logo-font">Dare Me</h1>

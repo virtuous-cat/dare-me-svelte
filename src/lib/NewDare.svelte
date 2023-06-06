@@ -1,11 +1,10 @@
 <script context="module" lang="ts">
   import type { DareDbInput } from "./db.types";
 
-  let newDares: (DareDbInput & { remove?: boolean; listPosition?: number })[] =
-    [];
+  let newDares = new Map<string, DareDbInput>();
 
   export function getAllNewDares() {
-    return newDares.filter((dare) => !dare.remove);
+    return newDares;
   }
 </script>
 
@@ -28,10 +27,8 @@
   export let saving: boolean = false;
   export let loggedIn: boolean = false;
   export let admin: boolean = false;
-  export let editing: boolean = false;
-  export let listPosition: number | undefined = undefined;
+  export let dareToAddId: string = "";
 
-  let removeFromAll: boolean = false;
   let newDareText = parentDare?.dareText ?? "";
   let newDarePartnered: boolean = parentDare ? parentDare.partnered : true;
   let newDareStatus: DareStatus = admin
@@ -57,16 +54,14 @@
   let newTag: string = "";
   let tagWarnings = [""];
 
-  $: if (!editing) {
-    newDares.push({
-      remove: removeFromAll ? true : undefined,
-      listPosition,
+  $: if (dareToAddId.length) {
+    newDares.set(dareToAddId, {
       dareText: newDareText.trim(),
       status: newDareStatus,
       partnered: newDarePartnered,
       category: newDareCategory,
       minInteraction: newDareInteraction,
-      timer: newDareTimer ?? null,
+      timer: newDareTimer === 0 ? null : newDareTimer,
       tags: newDareTags,
       parentId: parentDare?.parentId
         ? parentDare.parentId
@@ -177,16 +172,18 @@
         disabled={saving}
         on:click={() => {
           if (window.confirm("Discard changes?")) {
-            removeFromAll = true;
+            newDares.delete(dareToAddId);
             dispatch("discard");
           }
         }}>Cancel</Button
       >
       <Button
         loading={saving}
-        disabled={saving || newDareText.trim().length > 700}
+        disabled={saving ||
+          newDareText.trim().length > 700 ||
+          newDareText.trim().length < 1}
         on:click={() => {
-          removeFromAll = true;
+          newDares.delete(dareToAddId);
           dispatch("save", {
             newDare: {
               dareText: newDareText,

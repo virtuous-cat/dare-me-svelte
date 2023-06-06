@@ -83,6 +83,7 @@ export type NewDareState = {
   saved: boolean;
   removed: boolean;
   errors: string[];
+  dareToAddId: string;
 };
 
 export const MultiupdateOptionsSchema = z.object({
@@ -91,6 +92,6 @@ export const MultiupdateOptionsSchema = z.object({
   category: CATEGORY.nullable(),
   minInteraction: INTERACTION.nullable(),
   tags: TagSchema.shape.name.array(),
-})
+});
 
-export type MultiupdateOptions = z.infer<typeof MultiupdateOptionsSchema>
+export type MultiupdateOptions = z.infer<typeof MultiupdateOptionsSchema>;

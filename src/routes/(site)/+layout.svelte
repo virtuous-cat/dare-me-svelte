@@ -4,16 +4,20 @@
   import { getContext, onMount } from "svelte";
   import type { Writable } from "svelte/store";
 
+  console.log("(site) layout in")
+  
   let logIn: string | null;
-
+  
   onMount(() => {
     // TODO: Local storage hack for testing only, replace when there is actual auth
     logIn = localStorage.getItem("admin");
   });
-
+  
   let loggingIn: boolean = false;
-
+  
   const admin = getContext<Writable<boolean>>("admin");
+  
+  console.log("(site) layout in")
 </script>
 
 <header>

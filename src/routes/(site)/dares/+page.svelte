@@ -17,6 +17,7 @@
     INTERACTION,
     TagSchema,
   } from "$lib/db.types";
+  import { nanoid } from "nanoid";
   import { getContext, setContext } from "svelte";
   import { writable, type Writable } from "svelte/store";
 
@@ -129,7 +130,7 @@
   <section>
     {#if daresToAdd.length}
       <ul aria-label="dares to be submitted">
-        {#each daresToAdd as dare, i}
+        {#each daresToAdd as dare (dare.dareToAddId)}
           <li>
             <NewDare
               on:discard={() => {
@@ -164,6 +165,7 @@
                 if (!$loggedIn) {
                   const dareAdded = await response.json();
                   savedDares = [...savedDares, dareAdded];
+                  console.log("dare saved on client", dareAdded);
                 }
                 dare.saved = true;
                 dare.saving = false;
@@ -171,8 +173,9 @@
                 invalidate("api/dares");
               }}
               saving={dare.saving}
-              loggedIn
-              admin
+              loggedIn={$loggedIn}
+              admin={$admin}
+              dareToAddId={dare.dareToAddId}
             />
             {#each dare.errors as error}
               <small class="alert">{error}</small>
@@ -185,7 +188,13 @@
         on:click={() => {
           daresToAdd = [
             ...daresToAdd,
-            { saved: false, saving: false, removed: false, errors: [] },
+            {
+              saved: false,
+              saving: false,
+              removed: false,
+              errors: [],
+              dareToAddId: nanoid(),
+            },
           ];
         }}>+</Button
       >
@@ -196,8 +205,10 @@
           for (const dare of daresToAdd) {
             dare.saving = true;
           }
-          const newDares = getAllNewDares();
-          const response = await fetch("/api/dares/new", {
+          const newDaresMap = getAllNewDares();
+          const newDares = Array.from(newDaresMap);
+
+          const response = await fetch("/api/dares", {
             method: "POST",
             body: JSON.stringify(newDares),
             headers: {
@@ -214,9 +225,9 @@
             savingAll = false;
             return;
           }
-          const returned = await response.json();
+          const { daresAddedToDb, failedIds } = await response.json();
           const parsedReturned =
-            DareWithChildrenSchema.array().safeParse(returned);
+            DareWithChildrenSchema.array().safeParse(daresAddedToDb);
           if (!parsedReturned.success) {
             console.error(parsedReturned.error.format());
             saveAllError = "Server error encountered while saving.";
@@ -227,38 +238,17 @@
             return;
           }
           const daresAdded = parsedReturned.data;
-
-          const savedToDb =
-            daresAdded.length === newDares.length
-              ? newDares
-              : newDares.filter((dare) => {
-                  return daresAdded.some((addedDare) => {
-                    return (
-                      addedDare.dareText === dare.dareText &&
-                      addedDare.partnered === dare.partnered &&
-                      addedDare.status === dare.status &&
-                      addedDare.minInteraction === dare.minInteraction &&
-                      addedDare.category === dare.category &&
-                      addedDare.timer === dare.timer &&
-                      addedDare.tags.every((tag) =>
-                        dare.tags?.includes(tag.name)
-                      )
-                    );
-                  });
-                });
-          daresToAdd.forEach((dare, i) => {
-            if (savedToDb.some((dare) => dare.listPosition === i)) {
-              dare.saved = true;
-            }
-          });
           if (!$loggedIn) {
             savedDares = [...savedDares, ...daresAdded];
           }
           for (const dare of daresToAdd) {
+            if (!failedIds.includes(dare.dareToAddId)) {
+              dare.saved = true;
+            }
             dare.saving = false;
           }
           daresToAdd = daresToAdd.filter((dare) => !dare.saved);
-          if (daresToAdd.length) {
+          if (failedIds.length) {
             saveAllError = `Error saving above dare${
               daresToAdd.length > 1 ? "s" : ""
             }, please try again.`;
@@ -276,7 +266,13 @@
           maybeDiscardEditInProcess();
           daresToAdd = [
             ...daresToAdd,
-            { saved: false, saving: false, removed: false, errors: [] },
+            {
+              saved: false,
+              saving: false,
+              removed: false,
+              errors: [],
+              dareToAddId: nanoid(),
+            },
           ];
         }}>Submit New Dares</Button
       >
@@ -454,6 +450,7 @@
             }}
           />
         {/if}
+        expand: {expand.toString()}
         <Dare
           on:selectVariant={(e) => {
             statefulDare.selectedVariants = [

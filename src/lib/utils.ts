@@ -10,7 +10,7 @@ export function flattenDareList(dares: DareWithChildren[]) {
 export const dummyDares = [
   {
     status: "pending",
-    dareId: "DUIWGBHHXUXBAW",
+    dareId: "clik56l63000008l0e5xnd6nb",
     dareText: "Kiss the darer on the lips.",
     parentId: null,
     partnered: true,
@@ -22,7 +22,7 @@ export const dummyDares = [
   },
   {
     status: "public",
-    dareId: "F78YH9HFSCMPRTGHM",
+    dareId: "clik5746f000108l078i47uit",
     dareText: "Let the darer play with your bare nipples for 2 minutes.",
     parentId: null,
     partnered: true,
@@ -33,7 +33,7 @@ export const dummyDares = [
     children: [
       {
         status: "public",
-        dareId: "FBYHBDEFO9SUDNO98E",
+        dareId: "clik57ril000208l07m5e043t",
         dareText: "Let the darer twist your nipples hard for 1 minute.",
         parentId: null,
         partnered: true,
@@ -45,7 +45,7 @@ export const dummyDares = [
       },
       {
         status: "public",
-        dareId: "NCUW9BFUNZS9NBF3",
+        dareId: "clik58bzf000308l046hfcgim",
         dareText:
           "Let the darer play with your nipples through your clothes for 2 minutes.",
         parentId: null,
@@ -60,7 +60,7 @@ export const dummyDares = [
   },
   {
     status: "private",
-    dareId: "IBNV9UBNSDK8H9E3FN",
+    dareId: "clik58r8o000408l04eb6dss3",
     dareText: "Perform a striptease for the group.",
     parentId: null,
     partnered: false,
@@ -85,7 +85,7 @@ export const dummyDares = [
   },
   {
     status: "disabled",
-    dareId: "RGNUI9BDNFO9S84",
+    dareId: "clik5967u000508l09wrt1bes",
     dareText: "Describe your most bizarre sex dream.",
     parentId: null,
     partnered: false,

@@ -5,6 +5,8 @@ import { ADMIN_KEY } from "$env/static/private";
 import { customAlphabet } from "nanoid";
 import redis from "$lib/server/redis.js";
 
+console.log("(site) page.server in");
+
 const alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 const nanoid = customAlphabet(alphabet, 4);
 
@@ -128,3 +130,5 @@ export const actions = {
     throw redirect(303, `/games/${codeResult.data}`);
   },
 };
+
+console.log("(site) page.server out");

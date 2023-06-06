@@ -26,15 +26,7 @@
 </script>
 
 {#if editable}
-  <NewDare
-    editing={editable}
-    parentDare={dare}
-    {admin}
-    {loggedIn}
-    {saving}
-    on:save
-    on:discard
-  />
+  <NewDare parentDare={dare} {admin} {loggedIn} {saving} on:save on:discard />
 {:else}
   <div class="wrapper">
     <div class="grid">
@@ -141,14 +133,17 @@
 
 <style>
   .narrow {
-    @container (width < 700px) {
+    @media (min-width: 700px) {
       display: none;
     }
   }
   .hidden {
     display: none;
-    @container (width < 700px) {
+    @media (min-width: 700px) {
       display: block;
     }
+  }
+  .tags [aria-pressed="true"] {
+    background-color: darkcyan;
   }
 </style>
