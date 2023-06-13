@@ -18,10 +18,8 @@
     type DareWithChildren,
     type Interaction,
     INTERACTION,
-    TagSchema,
   } from "./db.types";
   import Button from "./Button.svelte";
-  import TextInput from "./TextInput.svelte";
   import NewTagsBlock from "./NewTagsBlock.svelte";
 
   export let parentDare: DareWithChildren | null = null;

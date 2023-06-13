@@ -17,6 +17,7 @@
   export let savingVariant: boolean = false;
   export let selectableVariants: boolean = false;
   export let selectedVariants: string[] = [];
+  export let markNewIds: string[] = [];
   const filteredTags = getContext<Writable<string[]>>("filteredTags");
 
   let hidden: boolean = true;
@@ -28,7 +29,11 @@
   <NewDare parentDare={dare} {admin} {loggedIn} {saving} on:save on:discard />
 {:else}
   <div class="wrapper">
-    <div class="grid">
+    <div
+      class="grid {dare?.dareId && markNewIds.includes(dare.dareId)
+        ? 'new'
+        : ''}"
+    >
       <p>{dare?.dareText}</p>
       {#if withDetails}
         <div class="narrow">
@@ -115,6 +120,7 @@
             {loggedIn}
             saving={savingVariant}
             {withDetails}
+            {markNewIds}
             on:discard={() =>
               dispatch("variantDiscard", { variantId: variant.dareId })}
             on:save={(e) => dispatch("variantSave", e.detail)}
@@ -144,5 +150,9 @@
   }
   .tags [aria-pressed="true"] {
     background-color: darkcyan;
+  }
+
+  .new {
+    background-color: lightgreen;
   }
 </style>

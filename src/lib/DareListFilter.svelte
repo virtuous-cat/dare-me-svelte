@@ -16,11 +16,9 @@
   import type { Writable } from "svelte/store";
 
   export let filtered: boolean = false;
-  // export let filterable: boolean = false;
   export let loggedIn: boolean = false;
   export let admin: boolean = false;
   export let dares: DareWithChildren[] = [];
-  // export let statefulDares: StatefulDare[] = [];
 
   const filteredDares = getContext<Writable<StatefulDare[]>>("filteredDares");
   const selectedParentIds = getContext<Writable<string[]>>("selectedParentIds");
@@ -107,7 +105,6 @@
         partneredFilter.length === 1
       )
     );
-    // const previousFilteredDares = [...$filteredDares];
     topLevelFiltered = [];
     filteredVariantIds = [];
     for (const dare of dares) {
@@ -119,17 +116,9 @@
           if ($allSelectedVariantIds.includes(variant.dareId)) {
             selectedVariantIds.push(variant.dareId);
           }
-          // else {
-          //   $allSelectedVariantIds = $allSelectedVariantIds.filter(
-          //     (variantId) => variantId !== variant.dareId
-          //   );
-          // }
         }
       }
-      // const previousFilteredDare = previousFilteredDares.find(
-      //   (oldDare) => oldDare.dare.dareId === dare.dareId
-      // );
-      // console.log("old dare state", previousFilteredDare);
+
       if (checkDare(dare)) {
         const statefulDare = {
           dare: { ...dare, children: filteredChildren },
@@ -139,20 +128,11 @@
           saving: false,
           editingVariantId: "",
           savingVariant: false,
-          // editable: previousFilteredDare?.editable ?? false,
-          // withNewVariant: previousFilteredDare?.withNewVariant ?? false,
-          // saving: previousFilteredDare?.saving ?? false,
-          // editingVariantId: previousFilteredDare?.editingVariantId ?? "",
-          // savingVariant: previousFilteredDare?.savingVariant ?? false,
           selectedVariants: selectedVariantIds,
         };
         topLevelFiltered = [...topLevelFiltered, statefulDare];
       } else if (filteredChildren.length) {
         const statefulVariants = filteredChildren.map((variant) => {
-          // const previousFilteredVariant = previousFilteredDares.find(
-          //   (oldDare) => oldDare.dare.dareId === variant.dareId
-          // );
-
           return {
             dare: variant,
             selected: selectedVariantIds.includes(variant.dareId),
@@ -161,11 +141,6 @@
             saving: false,
             editingVariantId: "",
             savingVariant: false,
-            // editable: previousFilteredVariant?.editable ?? false,
-            // withNewVariant: previousFilteredVariant?.withNewVariant ?? false,
-            // saving: previousFilteredVariant?.saving ?? false,
-            // editingVariantId: previousFilteredVariant?.editingVariantId ?? "",
-            // savingVariant: previousFilteredVariant?.savingVariant ?? false,
             selectedVariants: [],
           };
         });
@@ -180,24 +155,6 @@
     );
   }
 
-  // $: $filteredDares = !(
-  //   categoryFilter.length ||
-  //   interactionFilter.length ||
-  //   statusFilter.length ||
-  //   search ||
-  //   $tagFilter.length ||
-  //   partneredFilter.length === 1
-  // )
-  //   ? statefulDares
-  //   : dares.map((dare) => {
-  //       let filteredVariants;
-  //       if (!dare.dare.children.length) {
-  //         return checkDare(dare.dare);
-  //       }
-  //       return (
-  //         !!dare.dare.children.filter(checkDare).length || checkDare(dare.dare)
-  //       );
-  //     });
   $: {
     $filteredDares = topLevelFiltered;
     console.log("filteredDares updated", $filteredDares);

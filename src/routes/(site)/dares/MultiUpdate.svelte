@@ -10,7 +10,6 @@
   } from "$lib/db.types";
   import { getContext } from "svelte";
   import type { Writable } from "svelte/store";
-  import { string } from "zod";
 
   export let multiUpdateError: boolean = false;
   export let multiUpdateSuccess: boolean = false;
@@ -20,7 +19,6 @@
   const allSelectedVariantIds = getContext<Writable<string[]>>(
     "allSelectedVariantIds"
   );
-  // const allSelected = getContext<Writable<boolean>>("allSelected");
 
   $: allSelectedIds = [...$selectedParentIds, ...$allSelectedVariantIds];
 
@@ -55,10 +53,6 @@
       }
       $selectedParentIds = [];
       $allSelectedVariantIds = [];
-      // if(allVariantIds.length){
-      //   allVariantIds = [];
-      // }
-      // $selectedParentIds = $filteredDares.map(({ dare }) => dare.dareId);
 
       for (const { dare } of $filteredDares) {
         if (dare.parentId) {

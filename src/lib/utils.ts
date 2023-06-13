@@ -35,7 +35,7 @@ export const dummyDares = [
         status: "public",
         dareId: "clik57ril000208l07m5e043t",
         dareText: "Let the darer twist your nipples hard for 1 minute.",
-        parentId: null,
+        parentId: "clik5746f000108l078i47uit",
         partnered: true,
         category: "kink",
         minInteraction: "physical",
@@ -48,7 +48,7 @@ export const dummyDares = [
         dareId: "clik58bzf000308l046hfcgim",
         dareText:
           "Let the darer play with your nipples through your clothes for 2 minutes.",
-        parentId: null,
+        parentId: "clik5746f000108l078i47uit",
         partnered: true,
         category: "foreplay",
         minInteraction: "physical",
