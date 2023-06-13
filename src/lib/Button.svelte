@@ -3,9 +3,14 @@
   export let loading: boolean = false;
   export let className: string = "";
   export let title: string = "";
+  export let name: string = "";
+  export let value: string| undefined = undefined;
+  export let form: string| undefined = undefined;
+  export let type: "button" | "submit" | "reset" | null | undefined = undefined;
+  export let formaction: string| undefined = undefined;
 </script>
 
-<button class={className} {title} {disabled} on:click>
+<button class={className} {title} {disabled} {name} {formaction} {form} {type} {value} on:click>
   <slot />
   {#if loading}
     <span>...</span>

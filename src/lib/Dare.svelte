@@ -20,7 +20,6 @@
   const filteredTags = getContext<Writable<string[]>>("filteredTags");
 
   let hidden: boolean = true;
-  let showVariants: boolean = expand;
 
   const dispatch = createEventDispatcher();
 </script>
@@ -42,8 +41,8 @@
         {#if withVariants && dare?.children.length}
           <Button
             on:click={() => {
-              showVariants = !showVariants;
-            }}>{showVariants ? "Hide Variants" : "Show Variants"}</Button
+              expand = !expand;
+            }}>{expand ? "Hide Variants" : "Show Variants"}</Button
           >
         {/if}
         <div class="details" class:hidden>
@@ -93,7 +92,7 @@
       {/if}
       <div class="buttons"><slot name="buttons" /></div>
     </div>
-    {#if withVariants && showVariants && dare?.children.length}
+    {#if withVariants && expand && dare?.children.length}
       <ul class="variants">
         {#each dare.children as variant (variant.dareId)}
           {#if admin && selectableVariants}

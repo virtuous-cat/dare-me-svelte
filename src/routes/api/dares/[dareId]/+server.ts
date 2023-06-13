@@ -33,7 +33,8 @@ export async function POST({ request }) {
   return json(dareAdded, { status: 201 });
 }
 
-export async function PUT({ request }) {
+export async function PUT({ request, params }) {
+  console.log("in PUT function for dareId", params.dareId);
   const dareToUpdate = await request.json();
   const parsedDare = DareDbInputSchema.safeParse(dareToUpdate);
   if (!parsedDare.success) {
@@ -48,6 +49,7 @@ export async function PUT({ request }) {
     };
   });
   const dareUpdated = { ...parsedDare.data, tags: tagsWithIds };
+  console.log("returning from PUT", dareUpdated);
 
   return json(dareUpdated, { status: 200 });
 }

@@ -95,3 +95,14 @@ export const MultiupdateOptionsSchema = z.object({
 });
 
 export type MultiupdateOptions = z.infer<typeof MultiupdateOptionsSchema>;
+
+export type StatefulDare = {
+  dare: DareWithChildren;
+  selected: boolean;
+  editable: boolean;
+  withNewVariant: boolean;
+  saving: boolean;
+  editingVariantId: string;
+  savingVariant: boolean;
+  selectedVariants: string[];
+};

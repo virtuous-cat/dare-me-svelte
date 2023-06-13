@@ -16,20 +16,39 @@
     CATEGORY,
     INTERACTION,
     TagSchema,
+    type StatefulDare,
   } from "$lib/db.types";
   import { nanoid } from "nanoid";
   import { getContext, setContext } from "svelte";
   import { writable, type Writable } from "svelte/store";
+  import MultiUpdate from "./MultiUpdate.svelte";
 
   export let data;
   export let form;
   const admin = getContext<Writable<boolean>>("admin");
   const loggedIn = getContext<Writable<boolean>>("admin");
 
-  let selectedParentIds: string[] = [];
-  let allSelectedVariantIds: string[] = [];
-  $: allSelectedIds = [...selectedParentIds, ...allSelectedVariantIds];
-  let allSelected: boolean = false;
+  const filteredTags = writable<string[]>([]);
+  setContext("filteredTags", filteredTags);
+  const filteredDares = writable<StatefulDare[]>([]);
+  setContext("filteredDares", filteredDares);
+  const selectedParentIds = writable<string[]>([]);
+  setContext("selectedParentIds", selectedParentIds);
+  const allSelectedVariantIds = writable<string[]>([]);
+  setContext("allSelectedVariantIds", allSelectedVariantIds);
+  // const allSelected = writable<boolean>(false);
+  // setContext("allSelected", allSelected);
+
+  // TODO: make allSelected dependent such that
+  //  allSelected = $filteredDares.every((dare) => {
+  //   const topLevelSelected = $selectedParentIds.includes(dare.dare.dareId) || $allSelectedVariantIds.includes(dare.dare.dareId);
+  //   if (!dare.dare.children.length) {
+  //     return topLevelSelected;
+  //   }
+  //   const allChildrenSelected = dare.dare.children.every((variant) => $allSelectedVariantIds.includes(variant.dareId));
+  //   return topLevelSelected && allChildrenSelected
+  // })
+
   let editInProcess: boolean = false;
   let daresToAdd: NewDareState[] = [];
   let savedDares: DareWithChildren[] = [];
@@ -62,44 +81,38 @@
         }
         return dare;
       });
-  $: statefulDares = daresWithSavedVariants.map((dare) => {
-    const selected: string[] = [];
-    if (allSelectedVariantIds.length && dare.children.length) {
-      for (const variant of dare.children) {
-        if (allSelectedVariantIds.includes(variant.dareId)) {
-          selected.push(variant.dareId);
-        }
-      }
-    }
-    return {
-      dare: dare,
-      selected: false,
-      editable: false,
-      withNewVariant: false,
-      saving: false,
-      editingVariantId: "",
-      savingVariant: false,
-      selectedVariants: selected,
-    };
-  });
+  // $: statefulDares = daresWithSavedVariants.map((dare) => {
+  //   const selected: string[] = [];
+  //   if ($allSelectedVariantIds.length && dare.children.length) {
+  //     for (const variant of dare.children) {
+  //       if ($allSelectedVariantIds.includes(variant.dareId)) {
+  //         selected.push(variant.dareId);
+  //       }
+  //     }
+  //   }
+  //   return {
+  //     dare: dare,
+  //     selected: $selectedParentIds.includes(dare.dareId),
+  //     editable: false,
+  //     withNewVariant: false,
+  //     saving: false,
+  //     editingVariantId: "",
+  //     savingVariant: false,
+  //     selectedVariants: selected,
+  //   };
+  // });
+  // $: console.log("statefulDares updated", statefulDares);
 
   let saveAllError: string = "";
   let savingAll: boolean = false;
-  let allVariantIds: string[] = [];
 
-  let updating: boolean = false;
-  let multiupdateTags: string[] = [];
-  let newTag: string = "";
-  let tagWarnings: string[] = [];
+  let filtered: boolean;
 
-  const filteredTags = writable<string[]>([]);
-  setContext("filteredTags", filteredTags);
-
-  function confirmDiscard() {
-    return window.confirm(
-      "You are already editing a dare. Discard your changes?"
-    );
-  }
+  // function confirmDiscard() {
+  //   return window.confirm(
+  //     "You are already editing a dare. Discard your changes?"
+  //   );
+  // }
   function maybeDiscardEditInProcess() {
     if (editInProcess) {
       if (
@@ -107,14 +120,14 @@
       ) {
         return;
       }
-      const editing = statefulDares.find(
+      const editingIndex = $filteredDares.findIndex(
         ({ editable, withNewVariant, editingVariantId }) =>
           editable || withNewVariant || !!editingVariantId
       );
-      if (editing) {
-        editing.editable = false;
-        editing.withNewVariant = false;
-        editing.editingVariantId = "";
+      if (editingIndex > -1) {
+        $filteredDares[editingIndex].editable = false;
+        $filteredDares[editingIndex].withNewVariant = false;
+        $filteredDares[editingIndex].editingVariantId = "";
       }
       editInProcess = false;
       variantErrors = [];
@@ -278,227 +291,118 @@
       >
     {/if}
   </section>
-  <section>
-    <DareList
-      filterable
-      loggedIn={$loggedIn}
-      admin={$admin}
-      dares={statefulDares}
-    >
-      <div slot="controls" let:filteredDares>
-        <input
-          type="checkbox"
-          bind:checked={allSelected}
-          on:click={(e) => {
-            if (e.currentTarget.checked) {
-              selectedParentIds = filteredDares.map(({ dare }) => dare.dareId);
-
-              for (const { dare } of filteredDares) {
-                if (dare.children.length) {
-                  allVariantIds = [
-                    ...allVariantIds,
-                    ...dare.children.map((variant) => variant.dareId),
-                  ];
-                }
-              }
-              allSelectedVariantIds = allVariantIds;
-            } else {
-              selectedParentIds = [];
-              allSelectedVariantIds = [];
-            }
-          }}
-        />
-        <form
-          method="POST"
-          action="?/multiupdate"
-          use:enhance={({ data, cancel }) => {
-            if (!allSelectedIds.length) {
-              cancel();
-              return;
-            }
-            updating = true;
-            for (const tag of multiupdateTags) {
-              data.append("tags", tag);
-            }
-            for (const id of allSelectedIds) {
-              data.append("selectedIds", id);
-            }
-            return async ({ update }) => {
-              update();
-              updating = false;
-            };
-          }}
-        >
-          <label>
-            <strong>Partnered:</strong>
-            <select name="partnered">
-              <option value={null}>{""}</option>
-              <option value={true}> Partnered </option>
-              <option value={false}> Solo </option>
-            </select>
-          </label>
-          <label
-            ><strong>Status:</strong>
-            <select name="status">
-              <option value={null}>{""}</option>
-
-              {#each DARE_STATUS.options as status}
-                <option value={status}>
-                  {status}
-                </option>
-              {/each}
-            </select>
-          </label>
-          <label
-            ><strong>Category:</strong>
-            <select name="category">
-              <option value={null}>{""}</option>
-              {#each CATEGORY.options as category}
-                <option value={category}>
-                  {category}
-                </option>
-              {/each}
-            </select>
-          </label>
-          <label
-            ><strong>Minimum Interaction:</strong>
-            <select name="minInteraction">
-              <option value={null}>{""}</option>
-              {#each INTERACTION.options as interaction}
-                <option value={interaction}>
-                  {interaction}
-                </option>
-              {/each}
-            </select>
-          </label>
-          <p>
-            <strong id="update-tags-label">Add Tags:</strong>
-          </p>
-          <ul class="tags" aria-labelledby="update-tags-label">
-            {#each multiupdateTags as tag (tag)}
-              <li>
-                {tag}<button
-                  aria-label="delete tag"
-                  title="Delete tag"
-                  on:click={() => {
-                    multiupdateTags = multiupdateTags.filter(
-                      (listTag) => listTag !== tag
-                    );
-                  }}>x</button
-                >
-              </li>
-            {/each}
-          </ul>
-          <TextInput
-            name=""
-            bind:value={newTag}
-            schema={TagSchema.shape.name}
-            ariaLabel="Add new tag"
-            warnings={tagWarnings}
-            on:keydown={(e) => {
-              if (e.key === "Enter") {
-                const parsedTag = TagSchema.shape.name.safeParse(newTag);
-                if (!parsedTag.success) {
-                  tagWarnings = parsedTag.error.format()._errors;
-                  return;
-                }
-                if (!multiupdateTags.includes(parsedTag.data)) {
-                  multiupdateTags = [...multiupdateTags, parsedTag.data];
-                }
-                newTag = "";
-              }
-            }}
-          />
-          <Button
-            loading={updating}
-            className={form?.success
-              ? "success"
-              : form?.multiupdateError
-              ? "error"
-              : ""}>Update Selected</Button
-          >
-        </form>
-      </div>
-      <svelte:fragment let:dare={statefulDare} let:expand>
+  <DareList
+    bind:filtered
+    loggedIn={$loggedIn}
+    admin={$admin}
+    dares={daresWithSavedVariants}
+  >
+    <MultiUpdate
+      slot="controls"
+      multiUpdateError={!!form?.multiupdateError}
+      multiUpdateSuccess={form?.success}
+    />
+  </DareList>
+  <ul id="dare-list">
+    {#each $filteredDares as filteredDare (filteredDare.dare.dareId)}
+      <li>
         {#if $admin}
           <input
             type="checkbox"
+            checked={filteredDare.selected}
             on:click={(e) => {
-              if (e.currentTarget.checked) {
-                selectedParentIds = [
-                  ...selectedParentIds,
-                  statefulDare.dare.dareId,
-                ];
-                statefulDare.selected = true;
-                if (
-                  statefulDares.every(
-                    (dareToCheck) =>
-                      dareToCheck.selected &&
-                      dareToCheck.dare.children.length ===
-                        dareToCheck.selectedVariants.length
-                  )
-                ) {
-                  allSelected = true;
+              if (!filteredDare.selected) {
+                if (filteredDare.dare.parentId) {
+                  $allSelectedVariantIds = [
+                    ...$allSelectedVariantIds,
+                    filteredDare.dare.dareId,
+                  ];
+                } else {
+                  $selectedParentIds = [
+                    ...$selectedParentIds,
+                    filteredDare.dare.dareId,
+                  ];
                 }
+                // filteredDare.selected = true;
+                // if (
+                //   $filteredDares.every(
+                //     (dareToCheck) =>
+                //       dareToCheck.selected &&
+                //       dareToCheck.dare.children.length ===
+                //         dareToCheck.selectedVariants.length
+                //   )
+                // ) {
+                //   $allSelected = true;
+                // }
               } else {
-                allSelected = false;
-                statefulDare.selected = false;
-                selectedParentIds = selectedParentIds.filter(
-                  (id) => id !== statefulDare.dare.dareId
-                );
+                // $allSelected = false;
+                // filteredDare.selected = false;
+                if (filteredDare.dare.parentId) {
+                  $allSelectedVariantIds = $allSelectedVariantIds.filter(
+                    (id) => id !== filteredDare.dare.dareId
+                  );
+                } else {
+                  $selectedParentIds = $selectedParentIds.filter(
+                    (id) => id !== filteredDare.dare.dareId
+                  );
+                }
               }
             }}
           />
         {/if}
-        expand: {expand.toString()}
         <Dare
           on:selectVariant={(e) => {
-            statefulDare.selectedVariants = [
-              ...statefulDare.selectedVariants,
+            // filteredDare.selectedVariants = [
+            //   ...filteredDare.selectedVariants,
+            //   e.detail.variantId,
+            // ];
+            $allSelectedVariantIds = [
+              ...$allSelectedVariantIds,
               e.detail.variantId,
             ];
-            allSelectedVariantIds = [
-              ...allSelectedVariantIds,
-              e.detail.variantId,
-            ];
-            if (
-              statefulDares.every(
-                (dareToCheck) =>
-                  dareToCheck.selected &&
-                  dareToCheck.dare.children.length ===
-                    dareToCheck.selectedVariants.length
-              )
-            ) {
-              allSelected = true;
-            }
+            // if (
+            //   $filteredDares.every(
+            //     (dareToCheck) =>
+            //       dareToCheck.selected &&
+            //       dareToCheck.dare.children.length ===
+            //         dareToCheck.selectedVariants.length
+            //   )
+            // ) {
+            //   $allSelected = true;
+            // }
           }}
           on:deselectVariant={(e) => {
-            allSelected = false;
-            statefulDare.selectedVariants =
-              statefulDare.selectedVariants.filter(
-                (id) => id !== e.detail.variantId
-              );
-            allSelectedVariantIds = allSelectedVariantIds.filter(
+            // $allSelected = false;
+            // filteredDare.selectedVariants =
+            //   filteredDare.selectedVariants.filter(
+            //     (id) => id !== e.detail.variantId
+            //   );
+            $allSelectedVariantIds = $allSelectedVariantIds.filter(
               (id) => id !== e.detail.variantId
             );
           }}
           on:discard={() => {
-            statefulDare.editable = false;
+            filteredDare.editable = false;
             editInProcess = false;
           }}
           on:variantDiscard={() => {
-            statefulDare.editingVariantId = "";
+            filteredDare.editingVariantId = "";
             editInProcess = false;
           }}
           on:save={async (e) => {
-            statefulDare.saving = true;
+            filteredDare.saving = true;
             variantErrors = [];
-            const parsedDare = DareDbInputSchema.safeParse(e.detail.newDare);
+            const dareToUpdate = {
+              ...e.detail.newDare,
+              dareId: filteredDare.dare.dareId,
+            };
+            const parsedDare = DareDbInputSchema.safeParse(dareToUpdate);
             if (!parsedDare.success) {
               variantErrors = [...variantErrors, "Error saving dare."];
-              statefulDare.saving = false;
+              filteredDare.saving = false;
               return;
             }
+            console.log("dare to be updated", parsedDare.data.dareId);
             const response = await fetch(
               `/api/dares/${parsedDare.data.dareId}`,
               {
@@ -513,20 +417,27 @@
             if (!response.ok) {
               const error = await response.json();
               variantErrors = [...variantErrors, error.message];
-              statefulDare.saving = false;
+              filteredDare.saving = false;
               return;
             }
-            statefulDare.saving = false;
+            console.log("saved update to dare", parsedDare.data.dareId);
+            filteredDare.saving = false;
+            console.log("set saving to false", filteredDare.saving);
             editInProcess = false;
+            filteredDare.editable = false;
             invalidate("api/dares");
           }}
           on:variantSave={async (e) => {
-            statefulDare.savingVariant = true;
+            filteredDare.savingVariant = true;
             variantErrors = [];
-            const parsedDare = DareDbInputSchema.safeParse(e.detail.newDare);
+            const dareToUpdate = {
+              ...e.detail.newDare,
+              dareId: filteredDare.editingVariantId,
+            };
+            const parsedDare = DareDbInputSchema.safeParse(dareToUpdate);
             if (!parsedDare.success) {
               variantErrors = [...variantErrors, "Error saving dare."];
-              statefulDare.savingVariant = false;
+              filteredDare.savingVariant = false;
               return;
             }
             const response = await fetch(
@@ -543,26 +454,27 @@
             if (!response.ok) {
               const error = await response.json();
               variantErrors = [...variantErrors, error.message];
-              statefulDare.savingVariant = false;
+              filteredDare.savingVariant = false;
               return;
             }
-            statefulDare.savingVariant = false;
-            statefulDare.editingVariantId = "";
+            console.log("saved update to variant", parsedDare.data.dareId);
+            filteredDare.savingVariant = false;
+            filteredDare.editingVariantId = "";
             editInProcess = false;
             invalidate("api/dares");
           }}
-          dare={statefulDare.dare}
+          dare={filteredDare.dare}
           admin={$admin}
           loggedIn={$loggedIn}
-          editable={statefulDare.editable}
-          saving={statefulDare.saving}
-          editingVariantId={statefulDare.editingVariantId}
-          savingVariant={statefulDare.savingVariant}
+          editable={filteredDare.editable}
+          saving={filteredDare.saving}
+          editingVariantId={filteredDare.editingVariantId}
+          savingVariant={filteredDare.savingVariant}
           selectableVariants
-          selectedVariants={statefulDare.selectedVariants}
-          expand={expand ||
-            !!statefulDare.editingVariantId ||
-            !!statefulDare.selectedVariants.length}
+          selectedVariants={filteredDare.selectedVariants}
+          expand={filtered ||
+            !!filteredDare.editingVariantId ||
+            !!filteredDare.selectedVariants.length}
           withDetails
           withVariants
         >
@@ -572,8 +484,8 @@
               on:click={() => {
                 maybeDiscardEditInProcess();
                 editInProcess = true;
-                newVariantParentId = statefulDare.dare.dareId;
-                statefulDare.withNewVariant = true;
+                newVariantParentId = filteredDare.dare.dareId;
+                filteredDare.withNewVariant = true;
               }}>+</Button
             >
             {#if $admin}
@@ -582,7 +494,7 @@
                 on:click={() => {
                   maybeDiscardEditInProcess();
                   editInProcess = true;
-                  statefulDare.editable = true;
+                  filteredDare.editable = true;
                 }}>Edit</Button
               >
             {/if}
@@ -594,7 +506,7 @@
                 maybeDiscardEditInProcess();
                 editInProcess = true;
                 newVariantParentId = variantId;
-                statefulDare.withNewVariant = true;
+                filteredDare.withNewVariant = true;
               }}>+</Button
             >
             {#if $admin}
@@ -603,26 +515,26 @@
                 on:click={() => {
                   maybeDiscardEditInProcess();
                   editInProcess = true;
-                  statefulDare.editingVariantId = variantId;
+                  filteredDare.editingVariantId = variantId;
                 }}>Edit</Button
               >
             {/if}
           </svelte:fragment>
         </Dare>
-        {#if statefulDare.withNewVariant}
+        {#if filteredDare.withNewVariant}
           <NewDare
             on:discard={() => {
               variantErrors = [];
-              statefulDare.withNewVariant = false;
+              filteredDare.withNewVariant = false;
               editInProcess = false;
             }}
             on:save={async (e) => {
-              statefulDare.savingVariant = true;
+              filteredDare.savingVariant = true;
               variantErrors = [];
               const parsedDare = DareDbInputSchema.safeParse(e.detail.newDare);
               if (!parsedDare.success) {
                 variantErrors = [...variantErrors, "Error saving dare."];
-                statefulDare.savingVariant = false;
+                filteredDare.savingVariant = false;
                 return;
               }
               const response = await fetch("/api/dares/new", {
@@ -636,30 +548,41 @@
               if (!response.ok) {
                 const error = await response.json();
                 variantErrors = [...variantErrors, error.message];
-                statefulDare.savingVariant = false;
+                filteredDare.savingVariant = false;
                 return;
               }
               if (!$loggedIn) {
                 const dareAdded = await response.json();
                 savedVariants = [...savedVariants, dareAdded];
               }
-              statefulDare.savingVariant = false;
-              statefulDare.withNewVariant = false;
+              console.log("saved new variant");
+              filteredDare.savingVariant = false;
+              filteredDare.withNewVariant = false;
               editInProcess = false;
               newVariantParentId = "";
               invalidate("api/dares");
             }}
-            parentDare={newVariantParentId === statefulDare.dare.dareId
-              ? statefulDare.dare
-              : statefulDare.dare.children.find(
+            parentDare={newVariantParentId === filteredDare.dare.dareId
+              ? filteredDare.dare
+              : filteredDare.dare.children.find(
                   ({ dareId }) => dareId === newVariantParentId
                 )}
             admin={$admin}
             loggedIn={$loggedIn}
-            saving={statefulDare.savingVariant}
+            saving={filteredDare.savingVariant}
           />
         {/if}
-      </svelte:fragment>
-    </DareList>
-  </section>
+        {#if variantErrors.length}
+          <ul>
+            {#each variantErrors as error}
+              <li class="alert">error</li>
+            {/each}
+          </ul>
+        {/if}
+      </li>
+    {/each}
+    {#if !$filteredDares.length}
+      <li>No Dares Found</li>
+    {/if}
+  </ul>
 </main>

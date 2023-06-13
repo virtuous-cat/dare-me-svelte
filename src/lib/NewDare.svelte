@@ -22,6 +22,7 @@
   } from "./db.types";
   import Button from "./Button.svelte";
   import TextInput from "./TextInput.svelte";
+  import NewTagsBlock from "./NewTagsBlock.svelte";
 
   export let parentDare: DareWithChildren | null = null;
   export let saving: boolean = false;
@@ -32,7 +33,7 @@
   let newDareText = parentDare?.dareText ?? "";
   let newDarePartnered: boolean = parentDare ? parentDare.partnered : true;
   let newDareStatus: DareStatus = admin
-    ? DARE_STATUS.enum.public
+    ? parentDare?.status ?? DARE_STATUS.enum.public
     : DARE_STATUS.enum.pending;
   let newDareCategory: Category =
     parentDare?.category ?? CATEGORY.enum.unsorted;
@@ -51,8 +52,6 @@
   let newDareTags = parentDare?.tags
     ? parentDare.tags.map((tag) => tag.name)
     : [];
-  let newTag: string = "";
-  let tagWarnings = [""];
 
   $: if (dareToAddId.length) {
     newDares.set(dareToAddId, {
@@ -120,42 +119,7 @@
           {/each}
         </select>
       </label>
-      <p>
-        <strong id="tags-label">Tags:</strong>
-      </p>
-      <ul class="tags" aria-labelledby="tags-label">
-        {#each newDareTags as tag (tag)}
-          <li>
-            {tag}<button
-              aria-label="delete tag"
-              title="Delete tag"
-              on:click={() => {
-                newDareTags = newDareTags.filter((listTag) => listTag !== tag);
-              }}>x</button
-            >
-          </li>
-        {/each}
-      </ul>
-      <TextInput
-        name="new-tag"
-        bind:value={newTag}
-        schema={TagSchema.shape.name}
-        ariaLabel="Add new tag"
-        warnings={tagWarnings}
-        on:keydown={(e) => {
-          if (e.key === "Enter") {
-            const parsedTag = TagSchema.shape.name.safeParse(newTag);
-            if (!parsedTag.success) {
-              tagWarnings = parsedTag.error.format()._errors;
-              return;
-            }
-            if (!newDareTags.includes(parsedTag.data)) {
-              newDareTags = [...newDareTags, parsedTag.data];
-            }
-            newTag = "";
-          }
-        }}
-      />
+      <NewTagsBlock bind:tags={newDareTags} />
       <label
         ><strong>Timer:</strong>
         <select bind:value={newDareTimer}>

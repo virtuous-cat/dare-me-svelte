@@ -8,14 +8,27 @@ export const actions = {
     const parsedIdsToUpdate = GameDareSchema.shape.dareId
       .array()
       .safeParse(data.getAll("selectedIds"));
-    const parsedFieldsToUpdate = MultiupdateOptionsSchema.safeParse({
-      partnered: data.get("partnered"),
-      status: data.get("status"),
-      category: data.get("category"),
-      minInteraction: data.get("minInteraction"),
+    const partnered = data.get("partnered");
+    if (typeof partnered !== "string") {
+      return fail(400, {
+        multiupdateError: "Format error",
+      });
+    }
+    const fieldsToUpdate = {
+      partnered: JSON.parse(partnered),
+      status: data.get("status") === "null" ? null : data.get("status"),
+      category: data.get("category") === "null" ? null : data.get("category"),
+      minInteraction:
+        data.get("minInteraction") === "null"
+          ? null
+          : data.get("minInteraction"),
       tags: data.getAll("tags"),
-    });
-    if (!parsedFieldsToUpdate.success || !parsedIdsToUpdate) {
+    };
+    console.log("ids sent", data.getAll("selectedIds"));
+    console.log("fields as sent", fieldsToUpdate);
+    const parsedFieldsToUpdate =
+      MultiupdateOptionsSchema.safeParse(fieldsToUpdate);
+    if (!parsedFieldsToUpdate.success || !parsedIdsToUpdate.success) {
       if (!parsedFieldsToUpdate.success) {
         console.error(parsedFieldsToUpdate.error.format());
       }
