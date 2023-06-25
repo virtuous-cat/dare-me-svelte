@@ -48,7 +48,9 @@
           loggingIn = true;
           return async ({ result, update }) => {
             if (result.type === "success") {
-              $admin = result.data?.admin;
+              if (typeof result.data?.admin === "boolean") {
+                $admin = result.data?.admin;
+              }
             } else if (result.type === "failure") {
               console.error(result.data?.loginError);
             }
