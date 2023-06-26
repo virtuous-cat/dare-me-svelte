@@ -4,6 +4,7 @@ import { fail, redirect } from "@sveltejs/kit";
 import { ADMIN_KEY } from "$env/static/private";
 import { customAlphabet } from "nanoid";
 import redis from "$lib/server/redis.js";
+import type { Actions } from "./$types";
 
 console.log("(site) page.server in");
 
@@ -91,24 +92,46 @@ export const actions = {
     const codeResult = GameCodeSchema.safeParse(data.get("gameCode"));
     if (!codeResult.success) {
       const errorMessages = codeResult.error.format();
+      console.error("error in gameLaunch codeResult", errorMessages);
       return fail(400, {
         gameLaunched: false,
         launchGameErrors: errorMessages,
       });
     }
 
+    const rawCategories = data.get("categories");
+
+    if (typeof rawCategories !== "string") {
+      console.error("error getting rawCategories");
+      const delGame = await redis.del(`game:${codeResult.data}`);
+      console.log(`deleted game ${codeResult.data} from redis`, delGame);
+      return fail(400, {
+        gameLaunched: false,
+        launchGameErrors: {
+          _errors: [`error getting rawCategories`],
+        },
+      });
+    }
+
     const gameOptions = {
       hostId: data.get("hostId"),
       interaction: data.get("interaction"),
-      categories: data.get("categories"),
+      categories: JSON.parse(rawCategories),
     };
+
+    console.log("gameOptions", gameOptions)
 
     const gameOptionsResult = GameOptionsSchema.safeParse(gameOptions);
     if (!gameOptionsResult.success) {
       const errorMessages = gameOptionsResult.error.format();
+      console.error("error in gameOptions", errorMessages);
+      const delGame = await redis.del(`game:${codeResult.data}`);
+      console.log(`deleted game ${codeResult.data} from redis`, delGame)
       return fail(400, {
         gameLaunched: false,
-        launchGameErrors: errorMessages,
+        launchGameErrors: {
+          _errors: [`Problem launching game, please try again`],
+        },
       });
     }
 
@@ -118,6 +141,8 @@ export const actions = {
     );
     if (saved !== 3) {
       console.error("Error saving game options in redis, saved:", saved);
+      const delGame = await redis.del(`game:${codeResult.data}`);
+      console.log(`deleted game ${codeResult.data} from redis`, delGame);
       return fail(500, {
         gameLaunched: false,
         launchGameError: {
@@ -129,6 +154,6 @@ export const actions = {
 
     throw redirect(303, `/games/${codeResult.data}`);
   },
-};
+} satisfies Actions;
 
 console.log("(site) page.server out");

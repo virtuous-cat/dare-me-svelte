@@ -12,10 +12,11 @@
     type Category,
     type Interaction,
   } from "$lib/db.types";
+  import type { ActionData } from "./$types";
 
   console.log("(site) page in");
 
-  export let form;
+  export let form: ActionData;
   let gameCode: string = "";
   let playerName: string = "";
   let join: HTMLDialogElement;
@@ -64,12 +65,18 @@
     generating = true;
     return async ({ result, update }) => {
       if (result.type === "success") {
-        sessionStorage.setItem("gameCode", result.data?.gameCode);
-        console.log("stored gameCode", result.data?.gameCode);
+        if (typeof result.data?.gameCode === "string") {
+          sessionStorage.setItem("gameCode", result.data?.gameCode);
+          console.log("stored gameCode", result.data?.gameCode);
+        } else {
+          console.log("failed type check in generateGame return");
+        }
       }
       await update();
       generating = false;
-      create.showModal();
+      if (result.type === "success") {
+        create.showModal();
+      }
     };
   }}
 >
@@ -92,12 +99,18 @@
     }
     return async ({ result, update }) => {
       if (result.type === "success") {
-        sessionStorage.setItem("gameCode", result.data?.verifiedCode);
-        console.log("stored gameCode", result.data?.verifiedCode);
+        if (typeof result.data?.verifiedCode === "string") {
+          sessionStorage.setItem("gameCode", result.data?.verifiedCode);
+          console.log("stored gameCode", result.data?.verifiedCode);
+        } else {
+          console.log("failed type check in findGame return");
+        }
       }
       await update({ reset: false });
       finding = false;
-      join.showModal();
+      if (result.type === "success") {
+        join.showModal();
+      }
     };
   }}
 >
@@ -132,7 +145,7 @@
   <form
     method="POST"
     action="?/launchGame"
-    use:enhance={({ data, cancel }) => {
+    use:enhance={({ formData, cancel }) => {
       creating = true;
       if (!parsedName.success) {
         cancel();
@@ -157,14 +170,16 @@
       }
       sessionStorage.setItem("playerId", playerId);
       sessionStorage.setItem("playerName", parsedName.data);
-      data.set("gameCode", code);
-      data.set("hostId", playerId);
+      formData.set("gameCode", code);
+      formData.set("hostId", playerId);
+      formData.set("categories", JSON.stringify(categories));
       if (unmasked) {
-        data.set("interaction", INTERACTION.Enum.unmasked);
+        formData.set("interaction", INTERACTION.Enum.unmasked);
       }
       return async ({ update }) => {
         await update();
         creating = false;
+        create.close();
       };
     }}
   >
