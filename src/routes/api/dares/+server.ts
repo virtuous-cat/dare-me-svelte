@@ -3,6 +3,7 @@ import { error, json } from "@sveltejs/kit";
 import { DareDbInputSchema, type DareDbInput } from "$lib/db.types.js";
 import cuid from "cuid";
 import { dummyDares } from "$lib/utils";
+import type { RequestHandler } from "./$types";
 
 export async function GET() {
   const dares = dummyDares;
@@ -10,7 +11,7 @@ export async function GET() {
   return json(dares);
 }
 
-export async function POST({ request }) {
+export const POST = (async ({ request }) => {
   const daresToSave = await request.json();
   console.log(daresToSave);
   const daresMap = new Map<string, DareDbInput>(daresToSave);
@@ -40,4 +41,4 @@ export async function POST({ request }) {
   const failedIds: string[] = [];
 
   return json({ daresAddedToDb, failedIds }, { status: 201 });
-}
+}) satisfies RequestHandler;

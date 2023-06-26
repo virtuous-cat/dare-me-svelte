@@ -3,13 +3,15 @@ import { error, json } from "@sveltejs/kit";
 
 import cuid from "cuid";
 import { dummyDares } from "$lib/utils";
+import type { RequestHandler } from "./$types.js";
 
-export async function GET({ params }) {
+export const GET = (async ({ params }) => {
   const dare = dummyDares.filter((dare) => dare.dareId === params.dareId);
 
   return json(dare);
-}
-export async function POST({ request }) {
+}) satisfies RequestHandler
+
+export const POST = (async ({ request }) => {
   const dareToSave = await request.json();
   const parsedDare = DareDbInputSchema.safeParse(dareToSave);
   if (!parsedDare.success) {
@@ -31,9 +33,9 @@ export async function POST({ request }) {
   };
 
   return json(dareAdded, { status: 201 });
-}
+}) satisfies RequestHandler
 
-export async function PUT({ request, params }) {
+export const PUT = (async ({ request, params }) => {
   console.log("in PUT function for dareId", params.dareId);
   const dareToUpdate = await request.json();
   const parsedDare = DareDbInputSchema.safeParse(dareToUpdate);
@@ -52,9 +54,9 @@ export async function PUT({ request, params }) {
   console.log("returning from PUT", dareUpdated);
 
   return json(dareUpdated, { status: 200 });
-}
+}) satisfies RequestHandler
 
-export async function DELETE({ request }) {
+export const DELETE = (async ({ request }) => {
   const { dareId } = await request.json();
   const parsedDareId = GameDareSchema.shape.dareId.safeParse(dareId);
 
@@ -65,4 +67,4 @@ export async function DELETE({ request }) {
   // TODO: change status in db to disabled
   console.log("dare disabled", parsedDareId.data);
   return new Response(null, { status: 204 });
-}
+}) satisfies RequestHandler

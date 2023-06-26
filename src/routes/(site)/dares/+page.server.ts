@@ -1,6 +1,7 @@
 import { GameDareSchema, MultiupdateOptionsSchema } from "$lib/db.types.js";
 
 import { fail } from "@sveltejs/kit";
+import type { Actions } from "./$types";
 
 export const actions = {
   multiupdate: async ({ request }) => {
@@ -42,4 +43,4 @@ export const actions = {
     // TODO: update in db
     return { success: true };
   },
-};
+} satisfies Actions;
