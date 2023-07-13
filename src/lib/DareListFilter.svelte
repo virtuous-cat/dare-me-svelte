@@ -94,6 +94,7 @@
   let filteredVariantIds: string[] = [];
 
   $: {
+    // This console log is ensuring updates run when filters change, do not delete
     console.log(
       "making stateful dares, filtered",
       !!(
@@ -157,7 +158,7 @@
 
   $: {
     $filteredDares = topLevelFiltered;
-    console.log("filteredDares updated", $filteredDares);
+    // console.log("filteredDares updated", $filteredDares);
   }
 </script>
 
@@ -199,7 +200,7 @@
   {/if}
   <div>
     <h3>Filter:</h3>
-    filtered: {filtered.toString()}
+    <!-- filtered: {filtered.toString()} -->
     <Button
       on:click={() => {
         categoryFilter = [];
@@ -220,8 +221,8 @@
       Partnered
     </label>
   </fieldset>
-  partnered filter:
-  {#each partneredFilter as filter}{filter + ", "}{/each}
+  <!-- partnered filter:
+  {#each partneredFilter as filter}{filter + ", "}{/each} -->
   <fieldset>
     <legend> Categories: </legend>
     <label>
@@ -275,8 +276,8 @@
       </label>
     {/if}
   </fieldset>
-  category filter:
-  {#each categoryFilter as filter}{filter + ", "}{/each}
+  <!-- category filter:
+  {#each categoryFilter as filter}{filter + ", "}{/each} -->
   <fieldset>
     <legend> Minimum Interaction Required: </legend>
     <label>
@@ -330,8 +331,8 @@
       </label>
     {/if}
   </fieldset>
-  interaction filter:
-  {#each interactionFilter as filter}{filter + ", "}{/each}
+  <!-- interaction filter:
+  {#each interactionFilter as filter}{filter + ", "}{/each} -->
   {#if loggedIn}
     <fieldset>
       <legend>Status:</legend>
@@ -370,8 +371,8 @@
         </label>
       {/if}
     </fieldset>
-    status filter:
-    {#each statusFilter as filter}{filter + ", "}{/each}
+    <!-- status filter:
+    {#each statusFilter as filter}{filter + ", "}{/each} -->
   {/if}
   {#if admin}
     <slot name="controls" />

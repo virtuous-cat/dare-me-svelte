@@ -2,6 +2,7 @@
   import "@fontsource/modak";
   import { setContext } from "svelte";
   import { writable } from "svelte/store";
+  import "$lib/globalstyles.css";
 
   console.log("routes layout in");
 
@@ -12,16 +13,3 @@
 </script>
 
 <slot />
-
-<style>
-  :global(body) {
-    font-family: Seravek, "Gill Sans Nova", Ubuntu, Calibri, "DejaVu Sans",
-      source-sans-pro, sans-serif;
-
-    scroll-behavior: smooth;
-  }
-  :global(.logo-font) {
-    font-family: "Modak", Seravek, "Gill Sans Nova", Ubuntu, Calibri,
-      "DejaVu Sans", source-sans-pro, sans-serif;
-  }
-</style>

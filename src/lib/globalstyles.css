@@ -1,0 +1,137 @@
+/* Reset */
+
+/* Box sizing rules */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* Remove default margin */
+body,
+h1,
+h2,
+h3,
+h4,
+p,
+figure,
+blockquote,
+dl,
+dd {
+  margin: 0;
+}
+
+/* Remove list styles on ul, ol elements with a list role, which suggests default styling will be removed */
+ul,
+ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* Set core root defaults */
+html:focus-within {
+  scroll-behavior: smooth;
+}
+
+/* Set core body defaults */
+body {
+  min-height: 100vh;
+}
+
+/* A elements that don't have a class get default styles */
+a:not([class]) {
+  text-decoration-skip-ink: auto;
+}
+
+/* Make images easier to work with */
+img,
+picture {
+  max-width: 100%;
+  display: block;
+}
+
+/* Inherit fonts for inputs and buttons */
+input,
+button,
+textarea,
+select {
+  font: inherit;
+}
+
+dialog {
+  color: inherit;
+}
+
+button {
+  border: none;
+}
+
+/* Remove all animations, transitions and smooth scroll for people that prefer not to see them */
+@media (prefers-reduced-motion: reduce) {
+  html:focus-within {
+    scroll-behavior: auto;
+  }
+
+  /* *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  } */
+}
+
+/* Variables */
+
+:root {
+  --background-color: hsl(266, 59%, 17%);
+  --background-color: #1f0e34;
+  --text-color: hsl(0, 11%, 78%);
+  --text-brighter: hsl(0, 11%, 90%);
+  --accent-color: hsl(345, 80%, 48%);
+  --pop-color: #9ceaf8;
+  --unselected-opacity: 0.8;
+}
+
+/* Typography */
+
+body {
+  font-family: Seravek, "Gill Sans Nova", Ubuntu, Calibri, "DejaVu Sans",
+    source-sans-pro, sans-serif;
+
+  color: var(--text-color);
+  background-color: var(--background-color);
+}
+
+.logo-font {
+  font-family: "Modak", Seravek, "Gill Sans Nova", Ubuntu, Calibri,
+    "DejaVu Sans", source-sans-pro, sans-serif;
+}
+
+strong,
+h1,
+h2,
+h3,
+h4,
+legend {
+  color: var(--text-brighter);
+}
+
+legend {
+  font-weight: 700;
+}
+
+/* Body styling */
+
+/* :root {
+  color-scheme: light;
+} */
+
+body {
+  padding: 5px;
+  /* @media (min-width: 700px) {
+    padding: 20px;
+  } */
+}

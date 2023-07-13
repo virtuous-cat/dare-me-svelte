@@ -382,5 +382,6 @@
   h1 {
     font-size: clamp(4.75rem, 20vw - 3rem, 7.5rem);
     line-height: 1;
+    color: var(--accent-color);
   }
 </style>

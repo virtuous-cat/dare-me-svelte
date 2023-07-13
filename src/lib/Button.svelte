@@ -4,13 +4,23 @@
   export let className: string = "";
   export let title: string = "";
   export let name: string = "";
-  export let value: string| undefined = undefined;
-  export let form: string| undefined = undefined;
+  export let value: string | undefined = undefined;
+  export let form: string | undefined = undefined;
   export let type: "button" | "submit" | "reset" | null | undefined = undefined;
-  export let formaction: string| undefined = undefined;
+  export let formaction: string | undefined = undefined;
 </script>
 
-<button class={className} {title} {disabled} {name} {formaction} {form} {type} {value} on:click>
+<button
+  class={className}
+  {title}
+  {disabled}
+  {name}
+  {formaction}
+  {form}
+  {type}
+  {value}
+  on:click
+>
   <slot />
   {#if loading}
     <span>...</span>
@@ -20,7 +30,9 @@
 <style>
   button {
     border-radius: 1rem;
-    background-color: var(--bg-color, aquamarine);
+    background-color: var(--btn-bg-color, var(--pop-color));
+    color: var(--background-color);
+    padding: 0.3rem 0.75rem;
   }
   button:disabled {
     background-color: hsl(180, 25%, 58%);

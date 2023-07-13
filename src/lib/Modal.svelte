@@ -8,6 +8,6 @@
 
 <style>
   dialog {
-    background-color: blueviolet;
+    background-color: var(--background-color);
   }
 </style>
