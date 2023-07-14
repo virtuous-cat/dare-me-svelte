@@ -39,11 +39,6 @@ body {
   min-height: 100vh;
 }
 
-/* A elements that don't have a class get default styles */
-a:not([class]) {
-  text-decoration-skip-ink: auto;
-}
-
 /* Make images easier to work with */
 img,
 picture {
@@ -100,6 +95,7 @@ button {
 body {
   font-family: Seravek, "Gill Sans Nova", Ubuntu, Calibri, "DejaVu Sans",
     source-sans-pro, sans-serif;
+  font-size: 1.25rem;
 
   color: var(--text-color);
   background-color: var(--background-color);
@@ -123,15 +119,49 @@ legend {
   font-weight: 700;
 }
 
+.alert {
+  color: var(--accent-color);
+}
+
+a {
+  color: var(--accent-color);
+  text-decoration-skip-ink: auto;
+  text-decoration-color: var(--accent-color);
+}
+
+a:hover,
+a:focus-visible {
+  color: var(--pop-color);
+  background-color: transparent;
+  background: linear-gradient(
+    180deg,
+    hsl(345 80% 48% / 0) 0%,
+    hsl(345 80% 48% / 0) 40%,
+    hsl(345 80% 48% / 0.05) 50%,
+    hsl(345 80% 48% / 0.3) 65%,
+    hsl(345 80% 48% / 0.5) 80%,
+    #ff0083 100%
+  );
+}
+
 /* Body styling */
 
-/* :root {
-  color-scheme: light;
-} */
+:root {
+  color-scheme: dark;
+}
 
 body {
   padding: 5px;
   /* @media (min-width: 700px) {
     padding: 20px;
   } */
+}
+
+input {
+  accent-color: var(--accent-color);
+  border-radius: 5px;
+}
+
+:focus-visible {
+  outline: 3px solid var(--accent-color);
 }

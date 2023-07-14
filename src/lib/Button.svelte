@@ -33,6 +33,11 @@
     background-color: var(--btn-bg-color, var(--pop-color));
     color: var(--background-color);
     padding: 0.3rem 0.75rem;
+    &:hover,
+    &:focus-visible {
+      outline: 3px solid var(--accent-color);
+      box-shadow: -2px -2px 10px 1px hsl(345 80% 48%) inset;
+    }
   }
   button:disabled {
     background-color: hsl(180, 25%, 58%);

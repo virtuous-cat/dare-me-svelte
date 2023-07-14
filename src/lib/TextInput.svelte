@@ -14,23 +14,42 @@
   }
 </script>
 
-{#if label}
-  <label for="input">{label}</label>
-{/if}
-<input
-  id="input"
-  {name}
-  type="text"
-  bind:value
-  {disabled}
-  aria-label={ariaLabel}
-  on:input={() => {
-    if (warnings[0]) {
-      checkValue();
-    }
-  }}
-  on:keydown
-/>
-{#each warnings as warning}
-  <small class="alert">{warning}</small>
-{/each}
+<div>
+  {#if label}
+    <label for="input">{label}</label>
+  {/if}
+  <input
+    id="input"
+    {name}
+    type="text"
+    bind:value
+    {disabled}
+    aria-label={ariaLabel}
+    on:input={() => {
+      if (warnings[0]) {
+        checkValue();
+      }
+    }}
+    on:keydown
+  />
+</div>
+<div class="warnings">
+  {#each warnings as warning}
+    <small class="alert">{warning}</small>
+  {/each}
+</div>
+
+<style>
+  label {
+    font-weight: 700;
+    color: var(--text-color);
+    margin-inline-end: 0.5rem;
+  }
+  .warnings {
+    display: flex;
+    flex-direction: column;
+  }
+  small {
+    margin-block-end: 0.25rem;
+  }
+</style>

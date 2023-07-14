@@ -44,95 +44,98 @@
   console.log("(site) page out");
 </script>
 
-<h1 class="logo-font">Dare Me</h1>
-{#if alert}
-  <p class="alert">{alert}</p>
-{/if}
-{#if form?.generateGameErrors}
-  {#each form.generateGameErrors._errors as errorMessage}
-    <p class="alert">{errorMessage}</p>
-  {/each}
-{/if}
-{#if form?.launchGameErrors}
-  {#each form.launchGameErrors._errors as errorMessage}
-    <p class="alert">{errorMessage}</p>
-  {/each}
-{/if}
-<form
-  method="POST"
-  action="?/generateGame"
-  use:enhance={() => {
-    generating = true;
-    return async ({ result, update }) => {
-      if (result.type === "success") {
-        if (typeof result.data?.gameCode === "string") {
-          sessionStorage.setItem("gameCode", result.data?.gameCode);
-          console.log("stored gameCode", result.data?.gameCode);
-        } else {
-          console.log("failed type check in generateGame return");
-        }
-      }
-      await update();
-      generating = false;
-      if (result.type === "success") {
-        create.showModal();
-      }
-    };
-  }}
->
-  <Button disabled={generating || finding || creating || joining}
-    >Start a New Game
-  </Button>
-</form>
-<p>or</p>
-<form
-  method="POST"
-  action="?/findGame"
-  use:enhance={({ cancel }) => {
-    finding = true;
-    const parsedCode = GameCodeSchema.safeParse(gameCode);
-    if (!parsedCode.success) {
-      cancel();
-      nameErrors = parsedCode.error.format()._errors;
-      finding = false;
-      return;
-    }
-    return async ({ result, update }) => {
-      if (result.type === "success") {
-        if (typeof result.data?.verifiedCode === "string") {
-          sessionStorage.setItem("gameCode", result.data?.verifiedCode);
-          console.log("stored gameCode", result.data?.verifiedCode);
-        } else {
-          console.log("failed type check in findGame return");
-        }
-      }
-      await update({ reset: false });
-      finding = false;
-      if (result.type === "success") {
-        join.showModal();
-      }
-    };
-  }}
->
-  <TextInput
-    name="gameCode"
-    bind:value={gameCode}
-    disabled={generating || finding || creating || joining}
-    label="Game Code:"
-    schema={GameCodeSchema}
-    warnings={codeErrors}
-  />
-  {#if form?.findGameErrors}
-    {#each form.findGameErrors._errors as errorMessage}
+<main>
+  <h1 class="logo-font">Dare Me</h1>
+  {#if alert}
+    <p class="alert">{alert}</p>
+  {/if}
+  {#if form?.generateGameErrors}
+    {#each form.generateGameErrors._errors as errorMessage}
       <p class="alert">{errorMessage}</p>
     {/each}
   {/if}
-  <Button
-    disabled={generating || finding || creating || joining}
-    loading={finding}
-    >Join Game
-  </Button>
-</form>
+  {#if form?.launchGameErrors}
+    {#each form.launchGameErrors._errors as errorMessage}
+      <p class="alert">{errorMessage}</p>
+    {/each}
+  {/if}
+  <form
+    method="POST"
+    action="?/generateGame"
+    use:enhance={() => {
+      generating = true;
+      return async ({ result, update }) => {
+        if (result.type === "success") {
+          if (typeof result.data?.gameCode === "string") {
+            sessionStorage.setItem("gameCode", result.data?.gameCode);
+            console.log("stored gameCode", result.data?.gameCode);
+          } else {
+            console.log("failed type check in generateGame return");
+          }
+        }
+        await update();
+        generating = false;
+        if (result.type === "success") {
+          create.showModal();
+        }
+      };
+    }}
+  >
+    <Button disabled={generating || finding || creating || joining}
+      >Start a New Game
+    </Button>
+  </form>
+  <p>or</p>
+  <form
+    class="find-game"
+    method="POST"
+    action="?/findGame"
+    use:enhance={({ cancel }) => {
+      finding = true;
+      const parsedCode = GameCodeSchema.safeParse(gameCode);
+      if (!parsedCode.success) {
+        cancel();
+        nameErrors = parsedCode.error.format()._errors;
+        finding = false;
+        return;
+      }
+      return async ({ result, update }) => {
+        if (result.type === "success") {
+          if (typeof result.data?.verifiedCode === "string") {
+            sessionStorage.setItem("gameCode", result.data?.verifiedCode);
+            console.log("stored gameCode", result.data?.verifiedCode);
+          } else {
+            console.log("failed type check in findGame return");
+          }
+        }
+        await update({ reset: false });
+        finding = false;
+        if (result.type === "success") {
+          join.showModal();
+        }
+      };
+    }}
+  >
+    <TextInput
+      name="gameCode"
+      bind:value={gameCode}
+      disabled={generating || finding || creating || joining}
+      label="Game Code:"
+      schema={GameCodeSchema}
+      warnings={codeErrors}
+    />
+    {#if form?.findGameErrors}
+      {#each form.findGameErrors._errors as errorMessage}
+        <p class="alert">{errorMessage}</p>
+      {/each}
+    {/if}
+    <Button
+      disabled={generating || finding || creating || joining}
+      loading={finding}
+      >Join Game
+    </Button>
+  </form>
+</main>
 <Modal bind:modal={create}>
   <TextInput
     name="hostName"
@@ -379,9 +382,34 @@
 </Modal>
 
 <style>
+  main {
+    max-width: 900px;
+    margin: 0 auto;
+    display: grid;
+    justify-content: center;
+    text-align: center;
+    & > * {
+      margin-block-end: 1.2rem;
+    }
+  }
   h1 {
-    font-size: clamp(4.75rem, 20vw - 3rem, 7.5rem);
+    font-size: 128px;
+    font-size: clamp(4.75rem, 20vw - 3rem, 8rem);
     line-height: 1;
     color: var(--accent-color);
+    margin: 0.5em 0;
+  }
+
+  p {
+    font-size: 1.5rem;
+  }
+
+  .find-game {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    & > * {
+      margin-block-end: 0.5rem;
+    }
   }
 </style>

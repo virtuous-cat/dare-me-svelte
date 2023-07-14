@@ -27,7 +27,9 @@
       <li><a href="/about">About</a></li>
       <li><a href="/dares">Dares</a></li>
     </ul>
-    {#if logIn}
+  </nav>
+  {#if logIn}
+    <div class="login">
       <form
         id="login"
         method="POST"
@@ -67,8 +69,29 @@
         on:click={() => console.log("log in clicked")}
         >{$admin ? "Log Out" : "Log In"}</Button
       >
-    {/if}
-  </nav>
+    </div>
+  {/if}
 </header>
 
 <slot />
+
+<style>
+  header {
+    display: flex;
+    padding: 1.25rem 2rem;
+  }
+
+  ul {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    font-size: 1.25rem;
+    @media (min-width: 500px) {
+      flex-direction: row;
+    }
+  }
+
+  .login {
+    margin-inline-start: auto;
+  }
+</style>
