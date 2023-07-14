@@ -392,6 +392,7 @@
       margin-block-end: 1.2rem;
     }
   }
+
   h1 {
     font-size: 128px;
     font-size: clamp(4.75rem, 20vw - 3rem, 8rem);
