@@ -1,4 +1,4 @@
-import { CATEGORY, GameDareSchema, INTERACTION } from "./db.types";
+import { CATEGORY, GameDareSchema, INTERACTION } from "./db.types.js";
 
 import { z } from "zod";
 

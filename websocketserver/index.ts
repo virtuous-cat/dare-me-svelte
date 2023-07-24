@@ -12,11 +12,14 @@ import {
   PlayerIdSchema,
   GameCodeValidator,
   PlayerNameValidator,
-} from "../src/lib/game.types";
+} from "../src/lib/game.types.js";
 
 process.env.REDIS_URL;
 
-const port = 3000;
+const port = process.env.PORT;
+if (!port) {
+  throw new Error("No PORT in env");
+}
 const app = express();
 const server = createServer(app);
 
@@ -84,3 +87,5 @@ io.on("connection", (socket) => {
 app.use(handler);
 
 server.listen(port);
+
+console.log(`listening on port`, port);
