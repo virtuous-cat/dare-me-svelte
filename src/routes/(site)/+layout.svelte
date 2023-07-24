@@ -78,20 +78,28 @@
 <style>
   header {
     display: flex;
-    padding: 1.25rem 2rem;
+    flex-wrap: wrap;
+    gap: 1.25rem;
+    padding: 1rem 0.5rem;
+    @media (min-width: 500px) {
+      padding: 1.25rem 2rem;
+    }
   }
 
   ul {
     display: flex;
-    flex-direction: column;
+    flex-wrap: wrap;
     gap: 1rem;
     font-size: 1.25rem;
-    @media (min-width: 500px) {
+    /* @media (min-width: 500px) {
       flex-direction: row;
-    }
+      gap: 1rem;
+    } */
   }
 
   .login {
-    margin-inline-start: auto;
+    @media (min-width: 300px) {
+      margin-inline-start: auto;
+    }
   }
 </style>

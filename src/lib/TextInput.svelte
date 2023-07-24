@@ -6,9 +6,12 @@
   export let name: string | undefined = undefined;
   export let value: string;
   export let disabled: boolean = false;
-  export let schema: z.KeySchema;
+  export let schema: z.KeySchema | undefined = undefined;
   export let warnings = [""];
   function checkValue() {
+    if (!schema) {
+      return;
+    }
     const parsedValue = schema.safeParse(value);
     warnings = parsedValue.success ? [""] : parsedValue.error.format()._errors;
   }
@@ -20,6 +23,7 @@
   {/if}
   <input
     id="input"
+    class:label
     {name}
     type="text"
     bind:value
@@ -42,8 +46,11 @@
 <style>
   label {
     font-weight: 700;
-    color: var(--text-color);
+    color: var(--text-brighter);
     margin-inline-end: 0.5rem;
+  }
+  .label {
+    margin-block-start: 0.5rem;
   }
   .warnings {
     display: flex;

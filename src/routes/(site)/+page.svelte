@@ -389,7 +389,7 @@
     justify-content: center;
     text-align: center;
     & > * {
-      margin-block-end: 1.2rem;
+      margin-block-end: 1.25rem;
     }
   }
 

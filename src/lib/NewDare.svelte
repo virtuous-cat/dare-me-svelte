@@ -73,7 +73,7 @@
 
 <div class="wrapper">
   <div class="grid">
-    <p contenteditable bind:textContent={newDareText} />
+    <p contenteditable class="new-dare-text" bind:textContent={newDareText} />
     {#if newDareText.trim().length > 700}
       <small class="alert"
         >Dares must only contain upto 700 characters. Current count: {newDareText.trim()
@@ -167,3 +167,12 @@
     </div>
   </div>
 </div>
+
+<style>
+  .new-dare-text {
+    border-top: 2px solid hsl(345, 80%, 32%);
+    border-left: 2px solid hsl(345, 80%, 32%);
+    border-right: 2px solid var(--accent-color);
+    border-bottom: 2px solid var(--accent-color);
+  }
+</style>

@@ -163,6 +163,7 @@
 </script>
 
 <section aria-controls="dare-list">
+  <h2>All Dares:</h2>
   <TextInput
     bind:value={search}
     schema={z.string()}

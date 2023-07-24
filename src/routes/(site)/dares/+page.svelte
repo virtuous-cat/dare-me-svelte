@@ -93,11 +93,14 @@
 </script>
 
 <main>
-  <h1>Dares</h1>
-  <p>See what dares are already in the database, or submit your own.</p>
-  <p>All new dares will be reviewed before being added to the public list.</p>
-  <section>
+  <h1 class="logo-font">Dares</h1>
+  <div class="intro">
+    <p>See what dares are already in the database, or submit your own.</p>
+    <p>All new dares will be reviewed before being added to the public list.</p>
+  </div>
+  <section class="new-dares">
     {#if daresToAdd.length}
+      <h2>New Dares</h2>
       <ul aria-label="dares to be submitted">
         {#each daresToAdd as dare (dare.dareToAddId)}
           <li>
@@ -243,6 +246,7 @@
       >
     {:else}
       <Button
+        className="new-button"
         on:click={() => {
           maybeDiscardEditInProcess();
           daresToAdd = [
@@ -528,3 +532,30 @@
     {/if}
   </ul>
 </main>
+
+<style>
+  main {
+    max-width: 1000px;
+
+    margin: 0 auto;
+    & > * {
+      margin-block-end: 1.25rem;
+    }
+  }
+  h1 {
+    font-size: 4.75rem;
+    line-height: 1;
+    color: var(--accent-color);
+    margin: 1.5rem 0;
+  }
+  h1,
+  .intro {
+    text-align: center;
+  }
+  .new-dares {
+    display: grid;
+  }
+  .new-dares :global(.new-button) {
+    justify-self: center;
+  }
+</style>
