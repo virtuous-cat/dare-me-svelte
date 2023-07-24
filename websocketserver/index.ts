@@ -82,6 +82,10 @@ io.on("connection", (socket) => {
   });
 });
 
+app.get("/healthcheck", (req, res) => {
+  res.end("ok");
+});
+
 // SvelteKit should handle everything else using Express middleware
 // https://github.com/sveltejs/kit/tree/master/packages/adapter-node#custom-server
 app.use(handler);
@@ -89,3 +93,17 @@ app.use(handler);
 server.listen(port);
 
 console.log(`listening on port`, port);
+
+process.on("SIGTERM", function () {
+  console.log("SIGTERM called");
+  server.close(function () {
+    console.log("Finished all requests");
+  });
+});
+
+process.on("SIGINT", function () {
+  console.log("SIGINT called");
+  server.close(function () {
+    console.log("Finished all requests");
+  });
+});
