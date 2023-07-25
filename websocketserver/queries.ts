@@ -7,3 +7,8 @@ if (!url) {
 }
 
 const redis = new Redis(url);
+
+redis.on("error", function (error) {
+  console.log("error from server redis");
+  console.dir(error);
+});
