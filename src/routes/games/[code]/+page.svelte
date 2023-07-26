@@ -8,6 +8,7 @@
   import { goto } from "$app/navigation";
   import { onMount } from "svelte";
   import Button from "$lib/Button.svelte";
+  import { page } from "$app/stores";
 
   let clientPlayerName: string;
   let clientPlayerId: string;
@@ -84,6 +85,10 @@
     chatlog = [...chatlog, message];
   });
 </script>
+
+<svelte:head>
+  <title>Game {$page.params.code}</title>
+</svelte:head>
 
 <Button
   on:click={() => {

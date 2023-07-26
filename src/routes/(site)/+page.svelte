@@ -44,6 +44,10 @@
   console.log("(site) page out");
 </script>
 
+<svelte:head>
+    <title>Dare Me</title>
+</svelte:head>
+
 <main>
   <h1 class="logo-font">Dare Me</h1>
   {#if alert}
