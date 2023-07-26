@@ -92,6 +92,10 @@
   }
 </script>
 
+<svelte:head>
+  <title>Dares</title>
+</svelte:head>
+
 <main>
   <h1 class="logo-font">Dares</h1>
   <div class="intro">
