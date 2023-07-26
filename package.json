@@ -5,8 +5,8 @@
   "scripts": {
     "dev": "vite dev",
     "build": "vite build",
-    "start": "ORIGIN=https://daremegame.party node -r dotenv/config build",
-    "start:sockets": "ORIGIN=https://daremegame.party ts-node --transpile-only -r dotenv/config ./websocketserver/index.ts",
+    "start:nosockets": "ORIGIN=https://www.daremegame.party node -r dotenv/config build",
+    "start": "ORIGIN=https://www.daremegame.party ts-node --transpile-only -r dotenv/config ./websocketserver/index.ts",
     "start:local": "ORIGIN=http://localhost:3000 ts-node --transpile-only -r dotenv/config ./websocketserver/index.ts",
     "preview": "vite preview",
     "test": "playwright test",
