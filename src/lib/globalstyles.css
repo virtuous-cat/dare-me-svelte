@@ -81,12 +81,14 @@ button {
 /* Variables */
 
 :root {
-  --background-color: #1f0e34;
+  --background-color: hsl(267, 58%, 13%);
   --text-color: hsl(0, 11%, 78%);
   --text-brighter: hsl(0, 11%, 85%);
-  --accent-color: #dc1849;
+  --accent-color: hsl(345, 80%, 48%);
   --pop-color: #9ceaf8;
   --unselected-opacity: 0.8;
+  --border-radius-large: 1.75rem;
+  --border-radius-small: 0.5rem;
 }
 
 /* Typography */
@@ -169,4 +171,9 @@ select,
 
 :focus-visible {
   outline: 3px solid var(--accent-color);
+}
+
+fieldset {
+  border: 1px solid var(--accent-color);
+  border-radius: var(--border-radius-small);
 }
