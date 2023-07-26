@@ -45,7 +45,7 @@
 </script>
 
 <svelte:head>
-    <title>Dare Me</title>
+  <title>Dare Me</title>
 </svelte:head>
 
 <main>
@@ -99,7 +99,7 @@
       const parsedCode = GameCodeSchema.safeParse(gameCode);
       if (!parsedCode.success) {
         cancel();
-        nameErrors = parsedCode.error.format()._errors;
+        codeErrors = parsedCode.error.format()._errors;
         finding = false;
         return;
       }
