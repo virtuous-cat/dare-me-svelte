@@ -50,6 +50,14 @@
 
 <main>
   <h1 class="logo-font">Dare Me</h1>
+  <p class="tagline">
+    A consent-conscious adult game to get your sex party going
+  </p>
+  <p class="no-game">
+    The game is not up and running just yet, but you can <a href="/dares"
+      >add to the dare list</a
+    > in the meantime!
+  </p>
   {#if alert}
     <p class="alert">{alert}</p>
   {/if}
@@ -387,7 +395,7 @@
 
 <style>
   main {
-    max-width: 900px;
+    max-width: 600px;
     margin: 0 auto;
     display: grid;
     justify-content: center;
@@ -402,11 +410,30 @@
     font-size: clamp(4.75rem, 20vw - 3rem, 8rem);
     line-height: 1;
     color: var(--accent-color);
-    margin: 0.5em 0;
+    margin: 0.5em 0 0;
+  }
+
+  .tagline {
+    color: var(--accent-color);
+    margin-block-end: 3rem;
+    margin-block-start: 0.5rem;
+    margin-inline: auto;
+    max-width: 280px;
+    @media (min-width: 815px) {
+      /* font-size: 1.75rem; */
+      max-width: 900px;
+      margin-block-start: 0;
+      margin-block-end: 3.5rem;
+    }
   }
 
   p {
     font-size: 1.5rem;
+  }
+
+  .no-game {
+    font-size: 1.25rem;
+    line-height: 1.5;
   }
 
   .find-game {

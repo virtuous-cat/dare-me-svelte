@@ -98,7 +98,7 @@
   }
 
   .login {
-    @media (min-width: 300px) {
+    @media (min-width: 320px) {
       margin-inline-start: auto;
     }
   }
