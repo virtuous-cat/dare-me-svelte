@@ -16,6 +16,9 @@
     border-radius: var(--border-radius-large);
     border: 1px solid var(--accent-color);
     box-shadow: 0px 0px 20px 0px var(--accent-color) inset;
+    @media (min-width: 1000px) {
+      margin: auto;
+    }
     &::backdrop {
       background-color: hsla(216, 37%, 8%, 0.4);
     }
