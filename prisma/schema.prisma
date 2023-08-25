@@ -14,7 +14,7 @@ model Dare {
   /// @zod.string.cuid()
   id             String      @id @default(cuid())
   /// @zod.string.min(1, {message: "Dare text cannot be an empty string"}).max(300, {message: "Dare text max 300 characters"})
-  text           String
+  text           String      @unique
   parent         Dare?       @relation("ParentChildren", fields: [parentId], references: [id])
   parentId       String?
   children       Dare[]      @relation("ParentChildren")
