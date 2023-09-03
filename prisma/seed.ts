@@ -4,10 +4,10 @@ const prisma = new PrismaClient();
 
 const prodDares = [
   prisma.dare.upsert({
-    where: { text: "Kiss the darer on the lips." },
+    where: { dareText: "Kiss the darer on the lips." },
     update: {},
     create: {
-      text: "Kiss the darer on the lips",
+      dareText: "Kiss the darer on the lips",
       partnered: true,
       category: "foreplay",
       minInteraction: "unmasked",
@@ -21,11 +21,11 @@ const prodDares = [
   }),
   prisma.dare.upsert({
     where: {
-      text: "Let the darer play with your bare nipples for 2 minutes.",
+      dareText: "Let the darer play with your bare nipples for 2 minutes.",
     },
     update: {},
     create: {
-      text: "Let the darer play with your bare nipples for 2 minutes.",
+      dareText: "Let the darer play with your bare nipples for 2 minutes.",
       partnered: true,
       category: "foreplay",
       minInteraction: "physical",
@@ -39,10 +39,10 @@ const prodDares = [
     },
   }),
   prisma.dare.upsert({
-    where: { text: "Perform a striptease for the group." },
+    where: { dareText: "Perform a striptease for the group." },
     update: {},
     create: {
-      text: "Perform a striptease for the group.",
+      dareText: "Perform a striptease for the group.",
       partnered: false,
       status: "public",
       category: "flirty",
@@ -63,10 +63,10 @@ const prodDares = [
     },
   }),
   prisma.dare.upsert({
-    where: { text: "Describe your most bizarre sex dream." },
+    where: { dareText: "Describe your most bizarre sex dream." },
     update: {},
     create: {
-      text: "Describe your most bizarre sex dream.",
+      dareText: "Describe your most bizarre sex dream.",
       partnered: false,
       status: "public",
       category: "truth",
