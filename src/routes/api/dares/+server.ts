@@ -4,9 +4,18 @@ import { DareDbInputSchema, type DareDbInput } from "$lib/db.types.js";
 import cuid from "cuid";
 import { dummyDares } from "$lib/utils";
 import type { RequestHandler } from "./$types";
+import prisma from "$lib/prisma";
 
 export async function GET() {
-  const dares = dummyDares;
+  const dares = await prisma.dare.findMany({
+    where: { parent: null },
+    include: {
+      children: {
+        include: { tags: true },
+      },
+      tags: true,
+    },
+  });
 
   return json(dares);
 }
