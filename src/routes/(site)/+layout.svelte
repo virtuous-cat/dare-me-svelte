@@ -3,6 +3,7 @@
   import Button from "$lib/Button.svelte";
   import { getContext, onMount } from "svelte";
   import type { Writable } from "svelte/store";
+  import { fade } from "svelte/transition";
 
   console.log("(site) layout in");
 
@@ -14,12 +15,15 @@
   });
 
   let loggingIn: boolean = false;
+  let scroll: number;
+  let screenHeight: number;
 
   const admin = getContext<Writable<boolean>>("admin");
 
   console.log("(site) layout in");
 </script>
 
+<svelte:window bind:scrollY={scroll} bind:innerHeight={screenHeight} />
 <header>
   <nav>
     <ul>
@@ -75,6 +79,17 @@
 
 <slot />
 
+{#if scroll > screenHeight / 2}
+  <div class="top" transition:fade={{ duration: 200 }}>
+    <Button
+      title="Scroll to Top"
+      on:click={() => {
+        window.scrollTo(0, 0);
+      }}>^</Button
+    >
+  </div>
+{/if}
+
 <style>
   header {
     display: flex;
@@ -100,6 +115,16 @@
   .login {
     @media (min-width: 320px) {
       margin-inline-start: auto;
+    }
+  }
+
+  .top {
+    position: fixed;
+    bottom: 1.5rem;
+    right: 1rem;
+    @media (min-width: 700px) {
+      bottom: 3rem;
+      right: 4rem;
     }
   }
 </style>
