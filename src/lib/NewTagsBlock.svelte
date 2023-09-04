@@ -9,22 +9,23 @@
   let tagWarnings: string[] = [""];
 </script>
 
-<p>
+<div class="tags-list-wrapper">
   <strong id="tags-label">{label}</strong>
-</p>
-<ul class="tags" aria-labelledby="tags-label">
-  {#each tags as tag (tag)}
-    <li>
-      {tag}<button
-        aria-label="delete tag"
-        title="Delete tag"
-        on:click|preventDefault={() => {
-          tags = tags.filter((listTag) => listTag !== tag);
-        }}>x</button
-      >
-    </li>
-  {/each}
-</ul>
+  <ul class="tags" aria-labelledby="tags-label">
+    {#each tags as tag (tag)}
+      <li>
+        {tag}<button
+          class="delete"
+          aria-label="delete tag"
+          title="Delete tag"
+          on:click|preventDefault={() => {
+            tags = tags.filter((listTag) => listTag !== tag);
+          }}>x</button
+        >
+      </li>
+    {/each}
+  </ul>
+</div>
 <TextInput
   name="new-tag"
   bind:value={newTag}
@@ -46,3 +47,35 @@
     }
   }}
 />
+
+<style>
+  :global(.tags-list-wrapper) {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    min-height: 1.75rem;
+  }
+  :global(.tags) {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  :global(.tags > li) {
+    background-color: var(--btn-bg-color, var(--pop-color));
+    color: var(--background-color);
+    border-radius: 0.25rem;
+    display: flex;
+    gap: 0.25rem;
+    padding-inline: 0.25rem;
+    padding-block-end: 0.125rem;
+    & .delete {
+      background-color: inherit;
+      color: var(--accent-color);
+      border-radius: 50%;
+      line-height: 0.1;
+    }
+  }
+  .tags-list-wrapper {
+    margin-block-end: 0.5rem;
+  }
+</style>
