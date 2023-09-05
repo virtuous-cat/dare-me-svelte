@@ -13,6 +13,7 @@
     type Interaction,
   } from "$lib/db.types";
   import type { ActionData } from "./$types";
+  import { slide } from "svelte/transition";
 
   console.log("(site) page in");
 
@@ -32,6 +33,7 @@
   let nameErrors = [""];
   let codeErrors = [""];
   let categoryError: string = "";
+  let width: number;
   $: switch ($page.url.searchParams.get("message")) {
     case "gameerror":
       alert = "Error initializing game, please try again";
@@ -47,6 +49,8 @@
 <svelte:head>
   <title>Dare Me</title>
 </svelte:head>
+
+<svelte:window bind:innerWidth={width} />
 
 <main>
   <h1 class="logo-font">Dare Me</h1>
@@ -158,6 +162,7 @@
     warnings={nameErrors}
   />
   <form
+    class="create"
     method="POST"
     action="?/launchGame"
     use:enhance={({ formData, cancel }) => {
@@ -198,15 +203,15 @@
       };
     }}
   >
-    <fieldset>
+    <fieldset class="categories settings">
       <legend>
         Choose which categories of dares will be available for players to choose
         from:
-        <small
-          >(This will only affect which dares are listed from the database, and
-          will not limit dares the players create themselves.)</small
-        >
       </legend>
+      <small
+        >This will only affect which dares are listed from the database, and
+        will not limit dares the players create themselves.</small
+      >
       {#if categoryError}
         <p class="alert">{categoryError}</p>
       {/if}
@@ -222,7 +227,7 @@
             }
           }}
         />
-        Kink (significant BDSM or fetish content, primarily not explicitly sexual)
+        Kink - significant BDSM or fetish content, primarily not explicitly sexual
       </label>
       <label>
         <input
@@ -236,7 +241,7 @@
             }
           }}
         />
-        Sex (any direct genital contact, including masturbation)
+        Sex - any direct genital contact, including masturbation
       </label>
       <label>
         <input
@@ -250,8 +255,8 @@
             }
           }}
         />
-        Foreplay (significant sexual interaction not involving bare genitals, e.g.
-        making out or nipple play)
+        Foreplay - significant sexual interaction not involving bare genitals, e.g.
+        making out or nipple play
       </label>
       <label>
         <input
@@ -265,7 +270,7 @@
             }
           }}
         />
-        Flirty (e.g. striptease or massage)
+        Flirty - e.g. striptease or massage
       </label>
       <label>
         <input
@@ -279,18 +284,16 @@
             }
           }}
         />
-        Truth (may contain questions on topics related to any other category)
+        Truth - may contain questions on topics related to any other category
       </label>
     </fieldset>
-    <fieldset>
-      <legend>
-        How is your group playing today?
-        <small
-          >(Dares requiring higher levels of interaction will be omitted. Dare
-          Me is best paired with an external communications method, only text
-          chat is available in-game.)</small
-        >
-      </legend>
+    <fieldset class="interactions settings">
+      <legend> How is your group playing today? </legend>
+      <small
+        >Dares requiring higher levels of interaction will be omitted. Dare Me
+        is best paired with an external communications method, as only text chat
+        is available in-game.</small
+      >
       <label>
         <input
           type="radio"
@@ -300,10 +303,10 @@
         />
         In-Person
       </label>
-      {#if interactions === INTERACTION.Enum.physical}
-        <label
-          ><input type="checkbox" bind:checked={unmasked} />Include dares that
-          require at least one player to be unmasked</label
+      {#if interactions === INTERACTION.Enum.physical && width < 570}
+        <label class="masked" transition:slide
+          ><input type="checkbox" bind:checked={unmasked} />
+          Include dares that require at least one player to be unmasked</label
         >
       {/if}
       <label>
@@ -334,6 +337,12 @@
         />
         Text Chat
       </label>
+      {#if interactions === INTERACTION.Enum.physical && width >= 570}
+        <label class="masked" transition:slide
+          ><input type="checkbox" bind:checked={unmasked} />
+          Include dares that require at least one player to be unmasked</label
+        >
+      {/if}
     </fieldset>
     <div class="button-wrapper">
       <Button
@@ -443,5 +452,49 @@
     & > * {
       margin-block-end: 0.5rem;
     }
+  }
+
+  .create {
+    display: grid;
+    gap: 1.25rem;
+    margin-block-start: 1rem;
+  }
+
+  .settings {
+    padding: 1rem;
+    & small {
+      display: block;
+      font-weight: 700;
+      margin-block-end: 1rem;
+    }
+  }
+
+  .categories label {
+    display: block;
+    margin-block-start: 0.75rem;
+  }
+
+  .interactions {
+    display: flex;
+    flex-direction: column;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    @media (min-width: 570px) {
+      flex-direction: row;
+      row-gap: 0;
+    }
+  }
+
+  .masked {
+    @media (min-width: 570px) {
+      margin-block-start: 0.75rem;
+    }
+  }
+
+  .button-wrapper {
+    margin-inline-start: auto;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
   }
 </style>
