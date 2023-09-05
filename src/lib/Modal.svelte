@@ -10,7 +10,7 @@
   dialog {
     background-color: var(--background-color);
     margin: auto 0.5rem;
-    padding-block: 1.5rem;
+    padding: 1.5rem;
     width: calc(100% - 1rem);
     max-width: 1000px;
     border-radius: var(--border-radius-large);
