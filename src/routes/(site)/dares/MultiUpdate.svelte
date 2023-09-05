@@ -99,7 +99,7 @@
   >
     <div class="flex">
       <label>
-        <strong>Partnered:</strong>
+        <strong>Type:</strong>
         <select name="partnered">
           <option value={null}>{""}</option>
           <option value={true}> Partnered </option>
@@ -158,7 +158,7 @@
   .controls {
     margin-block-start: 1rem;
     border: 1px solid var(--accent-color);
-    border-radius: var(--border-radius-small);
+    border-radius: calc(var(--border-radius-small) + 0.5rem);
     padding-inline: 1rem;
     padding-block-end: 1rem;
     padding-block-start: 0.75rem;

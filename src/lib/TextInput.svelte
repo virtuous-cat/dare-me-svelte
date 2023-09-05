@@ -17,7 +17,7 @@
   }
 </script>
 
-<div>
+<div class="flex">
   {#if label}
     <label for="input">{label}</label>
   {/if}
@@ -44,19 +44,29 @@
 </div>
 
 <style>
+  .flex {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+  }
   label {
     font-weight: 700;
     color: var(--text-brighter);
-    margin-inline-end: 0.5rem;
+    /* margin-inline-end: 0.5rem; */
   }
-  .label {
+  /* .label {
     margin-block-start: 0.5rem;
-  }
+  } */
   .warnings {
     display: flex;
     flex-direction: column;
   }
   small {
     margin-block-end: 0.25rem;
+  }
+  input {
+    max-width: 100%;
+    min-width: 30px;
   }
 </style>
