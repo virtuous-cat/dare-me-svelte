@@ -163,219 +163,262 @@
 </script>
 
 <section aria-controls="dare-list">
-  <h2>All Dares:</h2>
-  <TextInput
-    bind:value={search}
-    schema={z.string()}
-    label="Search:"
-    name="search"
-  />
-  {#if search}
-    <Button on:click={() => (search = "")}>Clear Search</Button>
-  {/if}
-  <h3 id="tags-label">Filtered By Tag{$tagFilter.length > 1 ? "s" : ""}:</h3>
-  {#if !$tagFilter.length}
-    <div aria-labelledby="tags-label">None</div>
-  {:else}
-    <ul class="tags" aria-labelledby="tags-label">
-      {#each $tagFilter as tag (tag)}
-        <li>
-          <button
-            class="tag"
-            on:click={() => {
-              if ($tagFilter.includes(tag)) {
-                $tagFilter = $tagFilter.filter(
-                  (filterTag) => filterTag !== tag
-                );
-                return;
-              }
-              $tagFilter = [...$tagFilter, tag];
-            }}
-          >
-            {tag}
-          </button>
-        </li>
-      {/each}
-    </ul>
-    <Button on:click={() => ($tagFilter = [])}>Clear Tag Filters</Button>
-  {/if}
-  <div>
-    <h3>Filter:</h3>
-    <!-- filtered: {filtered.toString()} -->
-    <Button
-      on:click={() => {
-        categoryFilter = [];
-        interactionFilter = [];
-        statusFilter = [];
-        partneredFilter = [];
-      }}>Clear Filters</Button
-    >
+  <div class="search-tag-grid">
+    <div class="search">
+      <TextInput
+        bind:value={search}
+        schema={z.string()}
+        label="Search:"
+        name="search"
+      />
+      {#if search}
+        <Button on:click={() => (search = "")}>Clear Search</Button>
+      {/if}
+    </div>
+    <div class="tag-area">
+      <p id="tags-label">
+        <strong>Filtered By Tag{$tagFilter.length > 1 ? "s" : ""}: </strong>
+      </p>
+      {#if !$tagFilter.length}
+        <div aria-labelledby="tags-label">None</div>
+      {:else}
+        <ul class="tags" aria-labelledby="tags-label">
+          {#each $tagFilter as tag (tag)}
+            <li>
+              <button
+                class="tag"
+                on:click={() => {
+                  if ($tagFilter.includes(tag)) {
+                    $tagFilter = $tagFilter.filter(
+                      (filterTag) => filterTag !== tag
+                    );
+                    return;
+                  }
+                  $tagFilter = [...$tagFilter, tag];
+                }}
+              >
+                {tag}
+              </button>
+            </li>
+          {/each}
+        </ul>
+        <Button on:click={() => ($tagFilter = [])}>Clear Tag Filters</Button>
+      {/if}
+    </div>
   </div>
-  <fieldset>
-    <legend>Type:</legend>
-    <label>
+  <div class="filters">
+    <div>
+      <h3>Filter:</h3>
+      <!-- filtered: {filtered.toString()} -->
+      <Button
+        on:click={() => {
+          categoryFilter = [];
+          interactionFilter = [];
+          statusFilter = [];
+          partneredFilter = [];
+        }}>Clear Filters</Button
+      >
+    </div>
+    <fieldset>
+      <legend>Type:</legend>
       <label>
-        <input type="checkbox" value="solo" bind:group={partneredFilter} />
-        Solo
+        <label>
+          <input type="checkbox" value="solo" bind:group={partneredFilter} />
+          Solo
+        </label>
+        <input type="checkbox" value="partnered" bind:group={partneredFilter} />
+        Partnered
       </label>
-      <input type="checkbox" value="partnered" bind:group={partneredFilter} />
-      Partnered
-    </label>
-  </fieldset>
-  <!-- partnered filter:
-  {#each partneredFilter as filter}{filter + ", "}{/each} -->
-  <fieldset>
-    <legend> Categories: </legend>
-    <label>
-      <input
-        type="checkbox"
-        value={CATEGORY.Enum.kink}
-        bind:group={categoryFilter}
-      />
-      Kink
-    </label>
-    <label>
-      <input
-        type="checkbox"
-        value={CATEGORY.Enum.sex}
-        bind:group={categoryFilter}
-      />
-      Sex
-    </label>
-    <label>
-      <input
-        type="checkbox"
-        value={CATEGORY.Enum.foreplay}
-        bind:group={categoryFilter}
-      />
-      Foreplay
-    </label>
-    <label>
-      <input
-        type="checkbox"
-        value={CATEGORY.Enum.flirty}
-        bind:group={categoryFilter}
-      />
-      Flirty
-    </label>
-    <label>
-      <input
-        type="checkbox"
-        value={CATEGORY.Enum.truth}
-        bind:group={categoryFilter}
-      />
-      Truth
-    </label>
-    {#if loggedIn}
+    </fieldset>
+    <!-- partnered filter:
+    {#each partneredFilter as filter}{filter + ", "}{/each} -->
+    <fieldset>
+      <legend> Categories: </legend>
       <label>
         <input
           type="checkbox"
-          value={CATEGORY.Enum.unsorted}
+          value={CATEGORY.Enum.kink}
           bind:group={categoryFilter}
         />
-        Unsorted
-      </label>
-    {/if}
-  </fieldset>
-  <!-- category filter:
-  {#each categoryFilter as filter}{filter + ", "}{/each} -->
-  <fieldset>
-    <legend> Minimum Interaction Required: </legend>
-    <label>
-      <input
-        type="checkbox"
-        value={INTERACTION.enum.unmasked}
-        bind:group={interactionFilter}
-      />
-      Unmasked
-    </label>
-    <label>
-      <input
-        type="checkbox"
-        value={INTERACTION.enum.physical}
-        bind:group={interactionFilter}
-      />
-      Physical
-    </label>
-    <label>
-      <input
-        type="checkbox"
-        value={INTERACTION.enum.video}
-        bind:group={interactionFilter}
-      />
-      Video
-    </label>
-    <label>
-      <input
-        type="checkbox"
-        value={INTERACTION.enum.audio}
-        bind:group={interactionFilter}
-      />
-      Audio
-    </label>
-    <label>
-      <input
-        type="checkbox"
-        value={INTERACTION.enum.chat}
-        bind:group={interactionFilter}
-      />
-      Chat
-    </label>
-    {#if loggedIn}
-      <label>
-        <input
-          type="checkbox"
-          value={INTERACTION.enum.unsorted}
-          bind:group={interactionFilter}
-        />
-        Unsorted
-      </label>
-    {/if}
-  </fieldset>
-  <!-- interaction filter:
-  {#each interactionFilter as filter}{filter + ", "}{/each} -->
-  {#if loggedIn}
-    <fieldset>
-      <legend>Status:</legend>
-      <label>
-        <input
-          type="checkbox"
-          value={DARE_STATUS.enum.public}
-          bind:group={statusFilter}
-        />
-        Public
+        Kink
       </label>
       <label>
         <input
           type="checkbox"
-          value={DARE_STATUS.enum.private}
-          bind:group={statusFilter}
+          value={CATEGORY.Enum.sex}
+          bind:group={categoryFilter}
         />
-        Private
+        Sex
       </label>
       <label>
         <input
           type="checkbox"
-          value={DARE_STATUS.enum.pending}
-          bind:group={statusFilter}
+          value={CATEGORY.Enum.foreplay}
+          bind:group={categoryFilter}
         />
-        Pending
+        Foreplay
       </label>
-      {#if admin}
+      <label>
+        <input
+          type="checkbox"
+          value={CATEGORY.Enum.flirty}
+          bind:group={categoryFilter}
+        />
+        Flirty
+      </label>
+      <label>
+        <input
+          type="checkbox"
+          value={CATEGORY.Enum.truth}
+          bind:group={categoryFilter}
+        />
+        Truth
+      </label>
+      {#if loggedIn}
         <label>
           <input
             type="checkbox"
-            value={DARE_STATUS.enum.disabled}
-            bind:group={statusFilter}
+            value={CATEGORY.Enum.unsorted}
+            bind:group={categoryFilter}
           />
-          Disabled
+          Unsorted
         </label>
       {/if}
     </fieldset>
-    <!-- status filter:
-    {#each statusFilter as filter}{filter + ", "}{/each} -->
-  {/if}
+    <!-- category filter:
+    {#each categoryFilter as filter}{filter + ", "}{/each} -->
+    <fieldset>
+      <legend> Minimum Interaction Required: </legend>
+      <label>
+        <input
+          type="checkbox"
+          value={INTERACTION.enum.unmasked}
+          bind:group={interactionFilter}
+        />
+        Unmasked
+      </label>
+      <label>
+        <input
+          type="checkbox"
+          value={INTERACTION.enum.physical}
+          bind:group={interactionFilter}
+        />
+        Physical
+      </label>
+      <label>
+        <input
+          type="checkbox"
+          value={INTERACTION.enum.video}
+          bind:group={interactionFilter}
+        />
+        Video
+      </label>
+      <label>
+        <input
+          type="checkbox"
+          value={INTERACTION.enum.audio}
+          bind:group={interactionFilter}
+        />
+        Audio
+      </label>
+      <label>
+        <input
+          type="checkbox"
+          value={INTERACTION.enum.chat}
+          bind:group={interactionFilter}
+        />
+        Chat
+      </label>
+      {#if loggedIn}
+        <label>
+          <input
+            type="checkbox"
+            value={INTERACTION.enum.unsorted}
+            bind:group={interactionFilter}
+          />
+          Unsorted
+        </label>
+      {/if}
+    </fieldset>
+    <!-- interaction filter:
+    {#each interactionFilter as filter}{filter + ", "}{/each} -->
+    {#if loggedIn}
+      <fieldset>
+        <legend>Status:</legend>
+        <label>
+          <input
+            type="checkbox"
+            value={DARE_STATUS.enum.public}
+            bind:group={statusFilter}
+          />
+          Public
+        </label>
+        <label>
+          <input
+            type="checkbox"
+            value={DARE_STATUS.enum.private}
+            bind:group={statusFilter}
+          />
+          Private
+        </label>
+        <label>
+          <input
+            type="checkbox"
+            value={DARE_STATUS.enum.pending}
+            bind:group={statusFilter}
+          />
+          Pending
+        </label>
+        {#if admin}
+          <label>
+            <input
+              type="checkbox"
+              value={DARE_STATUS.enum.disabled}
+              bind:group={statusFilter}
+            />
+            Disabled
+          </label>
+        {/if}
+      </fieldset>
+      <!-- status filter:
+      {#each statusFilter as filter}{filter + ", "}{/each} -->
+    {/if}
+  </div>
   {#if admin}
     <slot name="controls" />
   {/if}
 </section>
+
+<style>
+  .filters,
+  .search,
+  .tag-area {
+    margin-block-start: 1rem;
+    border: 1px solid var(--accent-color);
+    border-radius: calc(var(--border-radius-small) + 0.5rem);
+    padding-inline: 1rem;
+    padding-block-end: 1rem;
+    padding-block-start: 0.75rem;
+  }
+  .search-tag-grid {
+    display: grid;
+    gap: 0.75rem;
+    @media (min-width: 700px) {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+  .search,
+  .tag-area {
+    /* border-radius: var(--border-radius-small); */
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: flex-start;
+  }
+  .tag-area {
+    margin-block-start: 0;
+    @media (min-width: 700px) {
+      margin-block-start: 1rem;
+    }
+  }
+</style>

@@ -21,6 +21,7 @@
   } from "./db.types";
   import Button from "./Button.svelte";
   import NewTagsBlock from "./NewTagsBlock.svelte";
+  import { slide } from "svelte/transition";
 
   export let parentDare: DareWithChildren | null = null;
   export let saving: boolean = false;
@@ -50,6 +51,11 @@
   let newDareTags = parentDare?.tags
     ? parentDare.tags.map((tag) => tag.name)
     : [];
+  let noChange = false;
+
+  $: if (noChange && newDareText !== parentDare?.dareText) {
+    noChange = false;
+  }
 
   $: if (dareToAddId.length) {
     newDares.set(dareToAddId, {
@@ -71,100 +77,114 @@
   const dispatch = createEventDispatcher();
 </script>
 
-<div class="wrapper">
-  <div class="grid">
+<div class="wrapper" transition:slide>
+  <div class="text">
     <p contenteditable class="new-dare-text" bind:textContent={newDareText} />
     {#if newDareText.trim().length > 700}
-      <small class="alert"
-        >Dares must only contain upto 700 characters. Current count: {newDareText.trim()
+      <small class="alert" transition:slide
+        >Dares may only contain upto 700 characters. Current count: {newDareText.trim()
           .length}</small
       >
     {/if}
-    <div class="details">
+    {#if noChange}
+      <small class="alert" transition:slide
+        >Variants must have unique dare text.</small
+      >
+    {/if}
+  </div>
+  <div class="flex">
+    <label>
+      <strong>Type:</strong>
       <select bind:value={newDarePartnered}>
         <option value={true}> Partnered </option>
         <option value={false}> Solo </option>
       </select>
-      {#if loggedIn && admin}
-        <label
-          ><strong>Status:</strong>
-          <select bind:value={newDareStatus}>
-            {#each DARE_STATUS.options as status}
-              <option value={status}>
-                {status}
-              </option>
-            {/each}
-          </select>
-        </label>
-      {/if}
+    </label>
+    {#if loggedIn && admin}
       <label
-        ><strong>Category:</strong>
-        <select bind:value={newDareCategory}>
-          {#each CATEGORY.options as category}
-            <option value={category}>
-              {category}
+        ><strong>Status:</strong>
+        <select bind:value={newDareStatus}>
+          {#each DARE_STATUS.options as status}
+            <option value={status}>
+              {status}
             </option>
           {/each}
         </select>
       </label>
-      <label
-        ><strong>Minimum Interaction:</strong>
-        <select bind:value={newDareInteraction}>
-          {#each INTERACTION.options as interaction}
-            <option value={interaction}>
-              {interaction}
-            </option>
-          {/each}
-        </select>
-      </label>
-      <NewTagsBlock bind:tags={newDareTags} />
-      <label
-        ><strong>Timer:</strong>
-        <select bind:value={newDareTimer}>
-          {#each timerMap as time}
-            <option value={time[1]}>
-              {time[0]}
-            </option>
-          {/each}
-        </select>
-      </label>
-    </div>
-    <div class="buttons">
-      <Button
-        disabled={saving}
-        on:click={() => {
-          if (window.confirm("Discard changes?")) {
-            newDares.delete(dareToAddId);
-            dispatch("discard");
-          }
-        }}>Cancel</Button
-      >
-      <Button
-        loading={saving}
-        disabled={saving ||
-          newDareText.trim().length > 700 ||
-          newDareText.trim().length < 1}
-        on:click={() => {
+    {/if}
+    <label
+      ><strong>Category:</strong>
+      <select bind:value={newDareCategory}>
+        {#each CATEGORY.options as category}
+          <option value={category}>
+            {category}
+          </option>
+        {/each}
+      </select>
+    </label>
+    <label
+      ><strong>Minimum Interaction:</strong>
+      <select bind:value={newDareInteraction}>
+        {#each INTERACTION.options as interaction}
+          <option value={interaction}>
+            {interaction}
+          </option>
+        {/each}
+      </select>
+    </label>
+    <label
+      ><strong>Timer:</strong>
+      <select bind:value={newDareTimer}>
+        {#each timerMap as time}
+          <option value={time[1]}>
+            {time[0]}
+          </option>
+        {/each}
+      </select>
+    </label>
+  </div>
+  <div class="tag-area">
+    <NewTagsBlock bind:tags={newDareTags} />
+  </div>
+  <div class="buttons">
+    <Button
+      disabled={saving}
+      on:click={() => {
+        if (window.confirm("Discard changes?")) {
           newDares.delete(dareToAddId);
-          dispatch("save", {
-            newDare: {
-              dareText: newDareText,
-              status: newDareStatus,
-              partnered: newDarePartnered,
-              category: newDareCategory,
-              minInteraction: newDareInteraction,
-              timer: newDareTimer ?? null,
-              tags: newDareTags,
-              parentId: parentDare?.parentId
-                ? parentDare.parentId
-                : parentDare
-                ? parentDare.dareId
-                : null,
-            },
-          });
-        }}>Save</Button
-      >
-    </div>
+          dispatch("discard");
+        }
+      }}>Cancel</Button
+    >
+    <Button
+      loading={saving}
+      disabled={saving ||
+        newDareText.trim().length > 700 ||
+        newDareText.trim().length < 1}
+      on:click={() => {
+        if (parentDare && newDareText === parentDare.dareText) {
+          noChange = true;
+          return;
+        }
+        newDares.delete(dareToAddId);
+        dispatch("save", {
+          newDare: {
+            dareText: newDareText,
+            status: newDareStatus,
+            partnered: newDarePartnered,
+            category: newDareCategory,
+            minInteraction: newDareInteraction,
+            timer: newDareTimer ?? null,
+            tags: newDareTags,
+            parentId: parentDare?.parentId
+              ? parentDare.parentId
+              : parentDare
+              ? parentDare.dareId
+              : null,
+          },
+        });
+      }}>Save</Button
+    >
   </div>
 </div>
 
@@ -174,5 +194,59 @@
     border-left: 2px solid hsl(345, 80%, 32%);
     border-right: 2px solid var(--accent-color);
     border-bottom: 2px solid var(--accent-color);
+  }
+
+  .wrapper {
+    flex-grow: 1;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-rows: repeat(4, auto);
+    grid-template-areas:
+      "text text"
+      "details details"
+      "tags tags"
+      "buttons buttons";
+    gap: 0.75rem;
+    margin-block-start: 1rem;
+    padding: 1rem;
+    padding-inline-start: 1.25rem;
+    border-radius: var(--border-radius-small);
+    border: 1px solid var(--accent-color);
+    box-shadow: 0px 0px 20px 0px var(--accent-color) inset;
+    @media (min-width: 700px) {
+      grid-template-rows: repeat(3, auto);
+      grid-template-areas:
+        "text text"
+        "details details"
+        "tags buttons";
+    }
+  }
+
+  .text {
+    grid-area: text;
+  }
+
+  .tag-area {
+    grid-area: tags;
+  }
+
+  label {
+    display: inline-block;
+  }
+  .flex {
+    grid-area: details;
+    display: flex;
+    flex-wrap: wrap;
+    column-gap: 1rem;
+    row-gap: 0.75rem;
+  }
+  .buttons {
+    grid-area: buttons;
+    align-self: end;
+    display: flex;
+    flex-wrap: wrap;
+    row-gap: 0.75rem;
+    column-gap: 0.5rem;
+    justify-content: flex-end;
   }
 </style>
