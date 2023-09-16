@@ -122,9 +122,17 @@
     position: fixed;
     bottom: 1.5rem;
     right: 1rem;
+
     @media (min-width: 700px) {
       bottom: 3rem;
       right: 4rem;
+    }
+  }
+  .top :global(button) {
+    outline: 3px solid var(--background-color);
+    &:hover,
+    &:focus-visible {
+      outline: 3px solid var(--accent-color);
     }
   }
 </style>
