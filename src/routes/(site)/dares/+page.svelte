@@ -15,6 +15,7 @@
   import { getContext, setContext } from "svelte";
   import { writable, type Writable } from "svelte/store";
   import MultiUpdate from "./MultiUpdate.svelte";
+  import { fade, slide } from "svelte/transition";
 
   export let data;
   export let form;
@@ -104,150 +105,155 @@
   </div>
   <section class="new-dares">
     {#if daresToAdd.length}
-      <h2>New Dares</h2>
-      <ul aria-label="dares to be submitted">
-        {#each daresToAdd as dare (dare.dareToAddId)}
-          <li>
-            <NewDare
-              on:discard={() => {
-                dare.removed = true;
-                daresToAdd = daresToAdd.filter((dare) => !dare.removed);
-              }}
-              on:save={async (e) => {
+      <h2 transition:fade>New Dares</h2>
+      <div class="new-dares-wrapper" out:fade>
+        <ul aria-label="dares to be submitted" transition:slide>
+          {#each daresToAdd as dare (dare.dareToAddId)}
+            <li>
+              <NewDare
+                on:discard={() => {
+                  dare.removed = true;
+                  daresToAdd = daresToAdd.filter((dare) => !dare.removed);
+                }}
+                on:save={async (e) => {
+                  dare.saving = true;
+                  dare.errors = [];
+                  const parsedDare = DareDbInputSchema.safeParse(
+                    e.detail.newDare
+                  );
+                  if (!parsedDare.success) {
+                    dare.errors = ["Error saving dare."];
+                    dare.saving = false;
+                    return;
+                  }
+                  const response = await fetch("/api/dares/new", {
+                    method: "POST",
+                    body: JSON.stringify(parsedDare.data),
+                    headers: {
+                      "Content-Type": "application/json",
+                      Accept: "application/json",
+                    },
+                  });
+                  if (!response.ok) {
+                    const error = await response.json();
+                    dare.errors = [...dare.errors, error.message];
+                    dare.saving = false;
+                    return;
+                  }
+                  const dareAdded = await response.json();
+                  if (!$loggedIn) {
+                    savedDares = [dareAdded, ...savedDares];
+                    console.log("dare saved on client", dareAdded);
+                  }
+                  markNewIds = [dareAdded.dareId];
+                  dare.saved = true;
+                  dare.saving = false;
+                  daresToAdd = daresToAdd.filter((dare) => !dare.saved);
+                  invalidate("api/dares");
+                }}
+                saving={dare.saving}
+                loggedIn={$loggedIn}
+                admin={$admin}
+                dareToAddId={dare.dareToAddId}
+              />
+              {#each dare.errors as error}
+                <small class="alert">{error}</small>
+              {/each}
+            </li>
+          {/each}
+        </ul>
+        <small class="alert">{saveAllError}</small>
+        <div class="new-dares-btn" transition:fade>
+          <Button
+            on:click={() => {
+              daresToAdd = [
+                ...daresToAdd,
+                {
+                  saved: false,
+                  saving: false,
+                  removed: false,
+                  errors: [],
+                  dareToAddId: nanoid(),
+                },
+              ];
+            }}>+</Button
+          >
+        </div>
+        <div class="new-dares-btn" transition:fade>
+          <Button
+            on:click={async () => {
+              savingAll = true;
+              saveAllError = "";
+              for (const dare of daresToAdd) {
                 dare.saving = true;
-                dare.errors = [];
-                const parsedDare = DareDbInputSchema.safeParse(
-                  e.detail.newDare
-                );
-                if (!parsedDare.success) {
-                  dare.errors = ["Error saving dare."];
+              }
+              const newDaresMap = getAllNewDares();
+              for (const key of newDaresMap.keys()) {
+                if (
+                  !daresToAdd.some(({ dareToAddId }) => dareToAddId === key)
+                ) {
+                  newDaresMap.delete(key);
+                }
+              }
+              const newDares = Array.from(newDaresMap);
+              const response = await fetch("/api/dares", {
+                method: "POST",
+                body: JSON.stringify(newDares),
+                headers: {
+                  "Content-Type": "application/json",
+                  Accept: "application/json",
+                },
+              });
+              if (!response.ok) {
+                const error = await response.json();
+                saveAllError = error.message;
+                for (const dare of daresToAdd) {
                   dare.saving = false;
-                  return;
                 }
-                const response = await fetch("/api/dares/new", {
-                  method: "POST",
-                  body: JSON.stringify(parsedDare.data),
-                  headers: {
-                    "Content-Type": "application/json",
-                    Accept: "application/json",
-                  },
-                });
-                if (!response.ok) {
-                  const error = await response.json();
-                  dare.errors = [...dare.errors, error.message];
+                savingAll = false;
+                return;
+              }
+              const { daresAddedToDb, failedIds } = await response.json();
+              const parsedReturned =
+                DareWithChildrenSchema.array().safeParse(daresAddedToDb);
+              if (!parsedReturned.success) {
+                console.error(parsedReturned.error.format());
+                saveAllError = "Server error encountered while saving.";
+                for (const dare of daresToAdd) {
                   dare.saving = false;
-                  return;
                 }
-                const dareAdded = await response.json();
-                if (!$loggedIn) {
-                  savedDares = [dareAdded, ...savedDares];
-                  console.log("dare saved on client", dareAdded);
+                savingAll = false;
+                return;
+              }
+              const daresAdded = parsedReturned.data;
+              if (!$loggedIn) {
+                savedDares = [...daresAdded, ...savedDares];
+              }
+              markNewIds = [];
+              daresAdded.forEach(
+                ({ dareId }) => (markNewIds = [...markNewIds, dareId])
+              );
+              for (const dare of daresToAdd) {
+                if (!failedIds.includes(dare.dareToAddId)) {
+                  dare.saved = true;
                 }
-                markNewIds = [dareAdded.dareId];
-                dare.saved = true;
                 dare.saving = false;
-                daresToAdd = daresToAdd.filter((dare) => !dare.saved);
-                invalidate("api/dares");
-              }}
-              saving={dare.saving}
-              loggedIn={$loggedIn}
-              admin={$admin}
-              dareToAddId={dare.dareToAddId}
-            />
-            {#each dare.errors as error}
-              <small class="alert">{error}</small>
-            {/each}
-          </li>
-        {/each}
-      </ul>
-      <small class="alert">{saveAllError}</small>
-      <Button
-        on:click={() => {
-          daresToAdd = [
-            ...daresToAdd,
-            {
-              saved: false,
-              saving: false,
-              removed: false,
-              errors: [],
-              dareToAddId: nanoid(),
-            },
-          ];
-        }}>+</Button
-      >
-      <Button
-        on:click={async () => {
-          savingAll = true;
-          saveAllError = "";
-
-          for (const dare of daresToAdd) {
-            dare.saving = true;
-          }
-          const newDaresMap = getAllNewDares();
-          for (const key of newDaresMap.keys()) {
-            if (!daresToAdd.some(({ dareToAddId }) => dareToAddId === key)) {
-              newDaresMap.delete(key);
-            }
-          }
-          const newDares = Array.from(newDaresMap);
-
-          const response = await fetch("/api/dares", {
-            method: "POST",
-            body: JSON.stringify(newDares),
-            headers: {
-              "Content-Type": "application/json",
-              Accept: "application/json",
-            },
-          });
-          if (!response.ok) {
-            const error = await response.json();
-            saveAllError = error.message;
-            for (const dare of daresToAdd) {
-              dare.saving = false;
-            }
-            savingAll = false;
-            return;
-          }
-          const { daresAddedToDb, failedIds } = await response.json();
-          const parsedReturned =
-            DareWithChildrenSchema.array().safeParse(daresAddedToDb);
-          if (!parsedReturned.success) {
-            console.error(parsedReturned.error.format());
-            saveAllError = "Server error encountered while saving.";
-            for (const dare of daresToAdd) {
-              dare.saving = false;
-            }
-            savingAll = false;
-            return;
-          }
-          const daresAdded = parsedReturned.data;
-          if (!$loggedIn) {
-            savedDares = [...daresAdded, ...savedDares];
-          }
-          markNewIds = [];
-          daresAdded.forEach(
-            ({ dareId }) => (markNewIds = [...markNewIds, dareId])
-          );
-
-          for (const dare of daresToAdd) {
-            if (!failedIds.includes(dare.dareToAddId)) {
-              dare.saved = true;
-            }
-            dare.saving = false;
-          }
-          daresToAdd = daresToAdd.filter((dare) => !dare.saved);
-          if (failedIds.length) {
-            saveAllError = `Error saving above dare${
-              daresToAdd.length > 1 ? "s" : ""
-            }, please try again.`;
-          }
-          savingAll = false;
-          invalidate("api/dares");
-        }}
-        loading={savingAll}
-        disabled={savingAll || daresToAdd.some((dare) => dare.saving)}
-        >Save all</Button
-      >
+              }
+              daresToAdd = daresToAdd.filter((dare) => !dare.saved);
+              if (failedIds.length) {
+                saveAllError = `Error saving above dare${
+                  daresToAdd.length > 1 ? "s" : ""
+                }, please try again.`;
+              }
+              savingAll = false;
+              invalidate("api/dares");
+            }}
+            loading={savingAll}
+            disabled={savingAll || daresToAdd.some((dare) => dare.saving)}
+            >Save all</Button
+          >
+        </div>
+      </div>
     {:else}
       <Button
         className="new-button"
@@ -283,7 +289,7 @@
     </DareListFilter>
     <ul id="dare-list" class="dares">
       {#each $filteredDares as filteredDare (filteredDare.dare.dareId)}
-        <li>
+        <li class={markNewIds.includes(filteredDare.dare.dareId) ? "new" : ""}>
           {#if $admin}
             <input
               type="checkbox"
@@ -572,9 +578,27 @@
   }
   .new-dares {
     display: grid;
+    & h2 {
+      margin-block-start: 0.5rem;
+    }
+  }
+  .new-dares-wrapper {
+    display: grid;
+    border: 1px solid var(--accent-color);
+    border-radius: calc(var(--border-radius-small) + 0.5rem);
+    padding-inline: 1rem;
+    padding-block-end: 1rem;
+    margin-block-start: 0.75rem;
   }
   .new-dares :global(.new-button) {
     justify-self: center;
+  }
+  .new-dares :global(.new-dares-btn) {
+    justify-self: end;
+    margin-block-start: 0.75rem;
+  }
+  .new {
+    outline: 1px solid var(--pop-color);
   }
   .dares li {
     display: flex;

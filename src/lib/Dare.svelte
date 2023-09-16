@@ -33,11 +33,7 @@
   <NewDare parentDare={dare} {admin} {loggedIn} {saving} on:save on:discard />
 {:else}
   <div class="wrapper">
-    <div
-      class="grid {dare?.dareId && markNewIds.includes(dare.dareId)
-        ? 'new'
-        : ''}"
-    >
+    <div class="grid">
       <p class="text">{dare?.dareText}</p>
       <div class="inner">
         {#if withDetails}
@@ -114,7 +110,11 @@
     {#if withVariants && expand && dare?.children.length}
       <ul class="variants" transition:slide>
         {#each dare.children as variant (variant.dareId)}
-          <li>
+          <li
+            class={variant.dareId && markNewIds.includes(variant.dareId)
+              ? "new"
+              : ""}
+          >
             {#if admin && selectableVariants}
               <input
                 type="checkbox"
@@ -178,7 +178,7 @@
   }
 
   .new {
-    background-color: lightgreen;
+    outline: 1px solid var(--pop-color);
   }
 
   .wrapper {
