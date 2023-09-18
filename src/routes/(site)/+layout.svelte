@@ -94,6 +94,7 @@
   header {
     display: flex;
     flex-wrap: wrap;
+    min-height: 4.625rem;
     gap: 1.25rem;
     padding: 1rem 0.5rem;
     @media (min-width: 500px) {
