@@ -1,7 +1,19 @@
-import { GameDareSchema, MultiupdateOptionsSchema } from "$lib/db.types.js";
+import {
+  DareWithChildrenSchema,
+  GameDareSchema,
+  MultiupdateOptionsSchema,
+} from "$lib/db.types.js";
 
 import { fail } from "@sveltejs/kit";
-import type { Actions } from "./$types";
+import type { Actions, PageServerLoad } from "./$types";
+
+export const load: PageServerLoad = async ({ fetch }) => {
+  const res = await fetch(`/api/dares`);
+  const dares = await res.json();
+  const parsedDares = DareWithChildrenSchema.array().parse(dares);
+
+  return { dares: parsedDares };
+};
 
 export const actions = {
   multiupdate: async ({ request }) => {
