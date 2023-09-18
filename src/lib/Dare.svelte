@@ -203,6 +203,11 @@
       "text text"
       "inner buttons";
     gap: 0.75rem;
+    @media (min-width: 500px) {
+      grid-template-areas:
+        "text buttons"
+        "inner buttons";
+    }
   }
   .inner {
     grid-area: inner;
@@ -229,6 +234,7 @@
     row-gap: 0.75rem;
     column-gap: 0.5rem;
     justify-content: flex-end;
+    align-items: flex-end;
     /* & > :last-child {
       margin-inline-start: 0.25rem;
     } */
