@@ -10,6 +10,7 @@
     type DareStatus,
     DARE_STATUS,
     type StatefulDare,
+    type DareWithTags,
   } from "./db.types";
   import Button from "./Button.svelte";
   import { getContext } from "svelte";
@@ -36,7 +37,7 @@
   let partneredFilter: ("partnered" | "solo")[] = [];
   let search: string = "";
 
-  function checkDare(dare: DareWithChildren) {
+  function checkDare(dare: DareWithChildren | DareWithTags) {
     // console.log("categories", categoryFilter);
     // console.log("interactions", interactionFilter);
     // console.log("statuses", statusFilter);
@@ -137,7 +138,7 @@
       } else if (filteredChildren.length) {
         const statefulVariants = filteredChildren.map((variant) => {
           return {
-            dare: variant,
+            dare: { ...variant, children: [] },
             selected: selectedVariantIds.includes(variant.dareId),
             editable: false,
             withNewVariant: false,
