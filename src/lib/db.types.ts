@@ -56,11 +56,11 @@ export const DareWithTagsSchema = DefaultDbDareSchema.extend({
 
 export type DareWithTags = z.infer<typeof DareWithTagsSchema>;
 
-export type DareWithChildren = DareWithTags & { children: DareWithChildren[] };
+export type DareWithChildren = DareWithTags & { children: DareWithTags[] };
 
 export const DareWithChildrenSchema: z.ZodType<DareWithChildren> =
   DareWithTagsSchema.extend({
-    children: z.lazy(() => DareWithChildrenSchema.array()),
+    children: z.lazy(() => DareWithTagsSchema.array()),
   });
 
 export const DareDbInputSchema = GameDareSchema.partial({
@@ -72,7 +72,6 @@ export const DareDbInputSchema = GameDareSchema.partial({
   minInteraction: INTERACTION.optional(),
   timer: z.number().int().nullable().optional(),
   parentId: z.string().nullable().optional(),
-  children: GameDareSchema.shape.dareId.array().optional(),
   tags: TagSchema.shape.name.array().optional(),
 });
 
