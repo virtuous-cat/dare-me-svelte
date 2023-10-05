@@ -1,5 +1,5 @@
 <script context="module" lang="ts">
-  import type { DareDbInput } from "./db.types";
+  import type { DareDbInput, DareWithTags } from "./db.types";
 
   let newDares = new Map<string, DareDbInput>();
 
@@ -23,7 +23,7 @@
   import NewTagsBlock from "./NewTagsBlock.svelte";
   import { slide } from "svelte/transition";
 
-  export let parentDare: DareWithChildren | null = null;
+  export let parentDare: DareWithChildren | DareWithTags | null = null;
   export let saving: boolean = false;
   export let loggedIn: boolean = false;
   export let admin: boolean = false;
