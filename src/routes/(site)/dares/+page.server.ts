@@ -6,6 +6,7 @@ import {
 
 import { fail } from "@sveltejs/kit";
 import type { Actions, PageServerLoad } from "./$types";
+import prisma from "$lib/prisma";
 
 export const load: PageServerLoad = async ({ fetch }) => {
   const res = await fetch(`/api/dares`);
@@ -28,12 +29,13 @@ export const actions = {
       });
     }
     const fieldsToUpdate = {
-      partnered: JSON.parse(partnered),
-      status: data.get("status") === "null" ? null : data.get("status"),
-      category: data.get("category") === "null" ? null : data.get("category"),
+      partnered: partnered === "null" ? undefined : partnered === "true",
+      status: data.get("status") === "null" ? undefined : data.get("status"),
+      category:
+        data.get("category") === "null" ? undefined : data.get("category"),
       minInteraction:
         data.get("minInteraction") === "null"
-          ? null
+          ? undefined
           : data.get("minInteraction"),
       tags: data.getAll("tags"),
     };
@@ -52,7 +54,42 @@ export const actions = {
         multiupdateError: "Format error",
       });
     }
-    // TODO: update in db
+    const { tags, ...updateData } = parsedFieldsToUpdate.data;
+    try {
+      if (tags.length > 0) {
+        const tagsData = tags.map((tag) => {
+          return { name: tag };
+        });
+        await prisma.$transaction([
+          prisma.tag.createMany({
+            data: tagsData,
+            skipDuplicates: true,
+          }),
+          ...parsedIdsToUpdate.data.map((dareId) =>
+            prisma.dare.update({
+              where: { dareId },
+              data: {
+                ...updateData,
+                tags: {
+                  connect: tagsData,
+                },
+              },
+              select: { dareId: true },
+            })
+          ),
+        ]);
+      } else {
+        await prisma.dare.updateMany({
+          where: {
+            dareId: { in: parsedIdsToUpdate.data },
+          },
+          data: updateData,
+        });
+      }
+    } catch (e) {
+      console.error(e);
+      fail(500, { message: "Failed to update dares." });
+    }
     return { success: true };
   },
 } satisfies Actions;

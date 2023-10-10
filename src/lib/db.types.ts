@@ -86,10 +86,10 @@ export type NewDareState = {
 };
 
 export const MultiupdateOptionsSchema = z.object({
-  partnered: z.boolean().nullable(),
-  status: DARE_STATUS.nullable(),
-  category: CATEGORY.nullable(),
-  minInteraction: INTERACTION.nullable(),
+  partnered: z.boolean().optional(),
+  status: DARE_STATUS.optional(),
+  category: CATEGORY.optional(),
+  minInteraction: INTERACTION.optional(),
   tags: TagSchema.shape.name.array(),
 });
 
