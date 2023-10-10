@@ -83,13 +83,6 @@ export const PUT = (async ({ request, params }) => {
     console.error(parsedDare.error.format());
     throw error(400, { message: "Error in dare format" });
   }
-  // TODO: save to db instead of id hack
-  const tagsWithIds = parsedDare.data.tags?.map((tag) => {
-    return {
-      name: tag,
-      id: Math.ceil(Math.random() * 1000),
-    };
-  });
   let dareUpdated: DareWithChildren;
   const query = {
     where: {

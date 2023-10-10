@@ -79,7 +79,7 @@
         cancel();
         return;
       }
-
+      multiUpdateError = false;
       updating = true;
       for (const tag of tags) {
         data.append("tags", tag);
@@ -87,9 +87,14 @@
       for (const id of allSelectedIds) {
         data.append("selectedIds", id);
       }
-      return async ({ update }) => {
+      return async ({ result, update }) => {
         update();
         updating = false;
+        if (result.type === "success") {
+          multiUpdateSuccess = true;
+        } else {
+          multiUpdateError = true;
+        }
         setTimeout(() => {
           multiUpdateError = false;
           multiUpdateSuccess = false;
@@ -141,6 +146,9 @@
       </label>
     </div>
     <NewTagsBlock bind:tags label="New Tags:" />
+    {#if multiUpdateError}
+      <p class="alert">Update failed, please try again.</p>
+    {/if}
     <div class="btn">
       <Button
         loading={updating}
