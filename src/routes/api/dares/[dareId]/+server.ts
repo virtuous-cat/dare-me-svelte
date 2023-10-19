@@ -84,40 +84,66 @@ export const PUT = (async ({ request, params }) => {
     throw error(400, { message: "Error in dare format" });
   }
   let dareUpdated: DareWithChildren;
-  const query = {
-    where: {
-      dareId: parsedDare.data.dareId,
-    },
-    data: {
-      ...parsedDare.data,
-      tags: {
-        connectOrCreate: parsedDare.data.tags?.map((tag) => {
-          return { where: { name: tag }, create: { name: tag } };
-        }),
-      },
-    },
-    include: {
-      tags: true,
-      children: {
-        include: { tags: true },
-      },
-    },
-  };
   try {
-    dareUpdated = await prisma.dare.update(query);
+    const { tags: oldTags } = await prisma.dare.findUniqueOrThrow({
+      where: {
+        dareId: parsedDare.data.dareId,
+      },
+      select: {
+        tags: {
+          select: { name: true },
+        },
+      },
+    });
+    const tagsToDisconnect = oldTags.filter((oldTag) => {
+      return !parsedDare.data.tags?.includes(oldTag.name);
+    });
+    const query = {
+      where: {
+        dareId: parsedDare.data.dareId,
+      },
+      data: {
+        ...parsedDare.data,
+        tags: {
+          connectOrCreate: parsedDare.data.tags?.map((tag) => {
+            return { where: { name: tag }, create: { name: tag } };
+          }),
+          disconnect: tagsToDisconnect,
+        },
+      },
+      include: {
+        tags: true,
+        children: {
+          include: { tags: true },
+        },
+      },
+    };
+    try {
+      dareUpdated = await prisma.dare.update(query);
+    } catch (e) {
+      console.error(e);
+      if (
+        e instanceof Prisma.PrismaClientKnownRequestError &&
+        e.code === "P2002"
+      ) {
+        try {
+          dareUpdated = await prisma.dare.update(query);
+        } catch (e) {
+          console.error(e);
+          throw error(500, { message: "Unable to update dare." });
+        }
+      } else if (
+        e instanceof Prisma.PrismaClientKnownRequestError &&
+        e.code === "P2025"
+      ) {
+        throw error(400, { message: "No such dare found" });
+      } else {
+        throw error(500, { message: "Unable to update dare" });
+      }
+    }
   } catch (e) {
     console.error(e);
     if (
-      e instanceof Prisma.PrismaClientKnownRequestError &&
-      e.code === "P2002"
-    ) {
-      try {
-        dareUpdated = await prisma.dare.update(query);
-      } catch (e) {
-        console.error(e);
-        throw error(500, { message: "Unable to update dare." });
-      }
-    } else if (
       e instanceof Prisma.PrismaClientKnownRequestError &&
       e.code === "P2025"
     ) {
