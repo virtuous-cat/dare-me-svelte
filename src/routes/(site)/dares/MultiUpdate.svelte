@@ -92,6 +92,9 @@
         updating = false;
         if (result.type === "success") {
           multiUpdateSuccess = true;
+          tags = [];
+          $selectedParentIds = [];
+          $allSelectedVariantIds = [];
         } else {
           multiUpdateError = true;
         }

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { invalidate } from "$app/navigation";
+  import { goto, invalidate, invalidateAll } from "$app/navigation";
   import Button from "$lib/Button.svelte";
   import Dare from "$lib/Dare.svelte";
   import DareListFilter from "$lib/DareListFilter.svelte";
@@ -12,15 +12,30 @@
     type StatefulDare,
   } from "$lib/db.types";
   import { nanoid } from "nanoid";
-  import { getContext, setContext } from "svelte";
+  import { afterUpdate, getContext, setContext } from "svelte";
   import { writable, type Writable } from "svelte/store";
   import MultiUpdate from "./MultiUpdate.svelte";
   import { fade, slide } from "svelte/transition";
+  import { page } from "$app/stores";
 
   export let data;
   export let form;
   const admin = getContext<Writable<boolean>>("admin");
   const loggedIn = getContext<Writable<boolean>>("admin");
+  afterUpdate(() => {
+    if ($admin && !$page.url.searchParams.has("starfruit")) {
+      console.log(`Admin updated to ${$admin}, go to starfruit`);
+      const searchParams = new URLSearchParams($page.url.searchParams);
+      searchParams.set("starfruit", "true");
+      goto(`?${searchParams.toString()}`);
+    }
+    if ($page.url.searchParams.has("starfruit") && !$admin) {
+      console.log(`Admin updated to ${$admin}, params reset`);
+      const searchParams = new URLSearchParams($page.url.searchParams);
+      searchParams.delete("starfruit");
+      goto(`?${searchParams.toString()}`);
+    }
+  });
 
   const filteredTags = writable<string[]>([]);
   setContext("filteredTags", filteredTags);
@@ -149,7 +164,7 @@
                   dare.saved = true;
                   dare.saving = false;
                   daresToAdd = daresToAdd.filter((dare) => !dare.saved);
-                  invalidate("api/dares");
+                  invalidateAll();
                 }}
                 saving={dare.saving}
                 loggedIn={$loggedIn}
@@ -246,7 +261,7 @@
                 }, please try again.`;
               }
               savingAll = false;
-              invalidate("api/dares");
+              invalidateAll();
             }}
             loading={savingAll}
             disabled={savingAll || daresToAdd.some((dare) => dare.saving)}
@@ -379,7 +394,7 @@
                   ? [parsedDare.data.dareId]
                   : [];
                 filteredDare.editable = false;
-                invalidate("api/dares");
+                invalidateAll();
               }}
               on:variantSave={async (e) => {
                 filteredDare.savingVariant = true;
@@ -418,7 +433,7 @@
                 markNewIds = parsedDare.data.dareId
                   ? [parsedDare.data.dareId]
                   : [];
-                invalidate("api/dares");
+                invalidateAll();
               }}
               dare={filteredDare.dare}
               admin={$admin}
@@ -528,7 +543,7 @@
                   editInProcess = false;
                   markNewIds = [dareAdded.dareId];
                   newVariantParentId = "";
-                  invalidate("api/dares");
+                  invalidateAll();
                 }}
                 parentDare={newVariantParentId === filteredDare.dare.dareId
                   ? filteredDare.dare
@@ -538,6 +553,7 @@
                 admin={$admin}
                 loggedIn={$loggedIn}
                 saving={filteredDare.savingVariant}
+                isNewVariant
               />
             {/if}
             {#if variantErrors.length}
