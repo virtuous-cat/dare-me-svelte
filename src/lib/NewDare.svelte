@@ -27,6 +27,7 @@
   export let saving: boolean = false;
   export let loggedIn: boolean = false;
   export let admin: boolean = false;
+  export let isNewVariant: boolean = false;
   export let dareToAddId: string = "";
 
   let newDareText = parentDare?.dareText ?? "";
@@ -68,7 +69,7 @@
       tags: newDareTags,
       parentId: parentDare?.parentId
         ? parentDare.parentId
-        : parentDare
+        : parentDare && isNewVariant
         ? parentDare.dareId
         : null,
     });
@@ -86,7 +87,7 @@
           .length}</small
       >
     {/if}
-    {#if noChange}
+    {#if noChange && isNewVariant}
       <small class="alert" transition:slide
         >Variants must have unique dare text.</small
       >
@@ -162,7 +163,7 @@
         newDareText.trim().length > 700 ||
         newDareText.trim().length < 1}
       on:click={() => {
-        if (parentDare && newDareText === parentDare.dareText) {
+        if (parentDare && isNewVariant && newDareText === parentDare.dareText) {
           noChange = true;
           return;
         }
@@ -178,7 +179,7 @@
             tags: newDareTags,
             parentId: parentDare?.parentId
               ? parentDare.parentId
-              : parentDare
+              : parentDare && isNewVariant
               ? parentDare.dareId
               : null,
           },

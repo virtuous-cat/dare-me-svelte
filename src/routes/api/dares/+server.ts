@@ -14,7 +14,7 @@ import { Prisma } from "@prisma/client";
 export const GET = (async ({ url }) => {
   // TODO: Remove hack once Auth implemented
   const user = {
-    admin: url.searchParams.has("admin"),
+    admin: url.searchParams.has("starfruit"),
   };
 
   const daresWhere: Prisma.DareWhereInput = { parent: null };
@@ -26,16 +26,24 @@ export const GET = (async ({ url }) => {
     childrenWhere.status = { equals: "public" };
   }
 
+  //TODO: figure out how to index order
   const dares = await prisma.dare.findMany({
+    orderBy: {
+      dareId: "desc",
+    },
     where: daresWhere,
     include: {
       children: {
+        orderBy: {
+          dareId: "asc",
+        },
         where: childrenWhere,
         include: { tags: true },
       },
       tags: true,
     },
   });
+  // console.log("dares from db", dares);
 
   return json(dares);
 }) satisfies RequestHandler;

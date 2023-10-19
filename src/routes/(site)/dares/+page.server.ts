@@ -8,8 +8,8 @@ import { fail } from "@sveltejs/kit";
 import type { Actions, PageServerLoad } from "./$types";
 import prisma from "$lib/prisma";
 
-export const load: PageServerLoad = async ({ fetch }) => {
-  const res = await fetch(`/api/dares`);
+export const load: PageServerLoad = async ({ fetch, url }) => {
+  const res = await fetch(`/api/dares?${url.searchParams.toString()}`);
   const dares = await res.json();
   const parsedDares = DareWithChildrenSchema.array().parse(dares);
 
@@ -23,18 +23,25 @@ export const actions = {
       .array()
       .safeParse(data.getAll("selectedIds"));
     const partnered = data.get("partnered");
-    if (typeof partnered !== "string") {
-      return fail(400, {
-        multiupdateError: "Format error",
-      });
-    }
+    // if (typeof partnered !== "string") {
+    //   return fail(400, {
+    //     multiupdateError: "Format error",
+    //   });
+    // }
+    console.log("partnered", partnered);
     const fieldsToUpdate = {
-      partnered: partnered === "null" ? undefined : partnered === "true",
-      status: data.get("status") === "null" ? undefined : data.get("status"),
+      partnered:
+        partnered === "true" ? true : partnered === "false" ? false : undefined,
+      status:
+        !data.get("status") || data.get("status") === "null"
+          ? undefined
+          : data.get("status"),
       category:
-        data.get("category") === "null" ? undefined : data.get("category"),
+        !data.get("category") || data.get("category") === "null"
+          ? undefined
+          : data.get("category"),
       minInteraction:
-        data.get("minInteraction") === "null"
+        !data.get("minInteraction") || data.get("minInteraction") === "null"
           ? undefined
           : data.get("minInteraction"),
       tags: data.getAll("tags"),
