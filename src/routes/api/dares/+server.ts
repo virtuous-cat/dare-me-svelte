@@ -4,6 +4,8 @@ import {
   DareDbInputSchema,
   type DareDbInput,
   type DareWithChildren,
+  BaseDareSchema,
+  DareIdSchema,
 } from "$lib/db.types.js";
 import cuid from "cuid";
 import { dummyDares } from "$lib/utils";
@@ -11,11 +13,29 @@ import type { RequestHandler } from "./$types";
 import prisma from "$lib/prisma";
 import { Prisma } from "@prisma/client";
 
-export const GET = (async ({ url }) => {
+export const GET = (async ({ url, request }) => {
   // TODO: Remove hack once Auth implemented
   const user = {
     admin: url.searchParams.has("starfruit"),
   };
+
+  const dareIdsToFind = await request.json();
+  const parsedDareIds = DareIdSchema.array().safeParse(dareIdsToFind);
+
+  if (parsedDareIds.success && parsedDareIds.data.length) {
+    const dares = await prisma.dare.findMany({
+      orderBy: {
+        dareId: "desc",
+      },
+      where: { dareId: { in: parsedDareIds.data } },
+      include: {
+        tags: true,
+      },
+    });
+    // console.log("specific dares from db", dares);
+
+    return json(dares);
+  }
 
   const daresWhere: Prisma.DareWhereInput = { parent: null };
   const childrenWhere: Prisma.DareWhereInput = {};

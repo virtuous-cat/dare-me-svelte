@@ -34,8 +34,10 @@ export const INTERACTION = z.enum([
 ]);
 export type Interaction = z.infer<typeof INTERACTION>;
 
+export const DareIdSchema = z.string().cuid();
+
 export const BaseDareSchema = z.object({
-  dareId: z.string().cuid(),
+  dareId: DareIdSchema,
   dareText: z.string().max(700, { message: "Dare text max 700 characters" }),
 });
 
