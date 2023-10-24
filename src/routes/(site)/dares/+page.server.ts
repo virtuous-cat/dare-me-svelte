@@ -1,6 +1,6 @@
 import {
   DareWithChildrenSchema,
-  GameDareSchema,
+  BaseDareSchema,
   MultiupdateOptionsSchema,
 } from "$lib/db.types.js";
 
@@ -19,7 +19,7 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
 export const actions = {
   multiupdate: async ({ request }) => {
     const data = await request.formData();
-    const parsedIdsToUpdate = GameDareSchema.shape.dareId
+    const parsedIdsToUpdate = BaseDareSchema.shape.dareId
       .array()
       .safeParse(data.getAll("selectedIds"));
     const partnered = data.get("partnered");

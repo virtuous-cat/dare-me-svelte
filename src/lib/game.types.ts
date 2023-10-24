@@ -1,4 +1,9 @@
-import { CATEGORY, GameDareSchema, INTERACTION } from "./db.types.js";
+import {
+  CATEGORY,
+  BaseDareSchema,
+  INTERACTION,
+  GameDareSchema,
+} from "./db.types.js";
 
 import { z } from "zod";
 
@@ -36,12 +41,16 @@ export const PlayerIdSchema = z.string().uuid({ message: "Invalid Player ID" });
 export const PlayerSchema = z.object({
   playerId: PlayerIdSchema,
   playerName: PlayerNameSchema,
+  ready: z.boolean(),
   dares: GameDareSchema.array(),
 });
 
 export type Player = z.infer<typeof PlayerSchema>;
 
-export const RedisPlayerSchema = PlayerSchema.omit({ dares: true }).extend({
+export const RedisPlayerSchema = PlayerSchema.omit({
+  dares: true,
+  ready: true,
+}).extend({
   turns: z.number().int().nonnegative(),
 });
 

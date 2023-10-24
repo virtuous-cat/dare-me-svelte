@@ -34,15 +34,18 @@ export const INTERACTION = z.enum([
 ]);
 export type Interaction = z.infer<typeof INTERACTION>;
 
-export const GameDareSchema = z.object({
+export const BaseDareSchema = z.object({
   dareId: z.string().cuid(),
   dareText: z.string().max(700, { message: "Dare text max 700 characters" }),
+});
+
+export const GameDareSchema = BaseDareSchema.extend({
+  partnered: z.boolean(),
 });
 
 export const DefaultDbDareSchema = GameDareSchema.extend({
   parentId: z.string().nullable(),
   status: DARE_STATUS,
-  partnered: z.boolean(),
   category: CATEGORY,
   minInteraction: INTERACTION,
   timer: z.number().int().nullable(),
@@ -63,7 +66,7 @@ export const DareWithChildrenSchema: z.ZodType<DareWithChildren> =
     children: z.lazy(() => DareWithTagsSchema.array()),
   });
 
-export const DareDbInputSchema = GameDareSchema.partial({
+export const DareDbInputSchema = BaseDareSchema.partial({
   dareId: true,
 }).extend({
   partnered: z.boolean(),

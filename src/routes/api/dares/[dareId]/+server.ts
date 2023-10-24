@@ -1,6 +1,6 @@
 import {
   DareDbInputSchema,
-  GameDareSchema,
+  BaseDareSchema,
   type DareWithChildren,
 } from "$lib/db.types";
 import { error, json } from "@sveltejs/kit";
@@ -159,7 +159,7 @@ export const PUT = (async ({ request, params }) => {
 
 export const DELETE = (async ({ request }) => {
   const { dareId } = await request.json();
-  const parsedDareId = GameDareSchema.shape.dareId.safeParse(dareId);
+  const parsedDareId = BaseDareSchema.shape.dareId.safeParse(dareId);
 
   if (!parsedDareId.success) {
     console.error(parsedDareId.error.format());
