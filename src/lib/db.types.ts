@@ -43,14 +43,16 @@ export const BaseDareSchema = z.object({
 
 export const GameDareSchema = BaseDareSchema.extend({
   partnered: z.boolean(),
+  timer: z.number().int().nullable(),
 });
+
+export type GameDare = z.infer<typeof GameDareSchema>;
 
 export const DefaultDbDareSchema = GameDareSchema.extend({
   parentId: z.string().nullable(),
   status: DARE_STATUS,
   category: CATEGORY,
   minInteraction: INTERACTION,
-  timer: z.number().int().nullable(),
 });
 
 export type DefaultDbDare = z.infer<typeof DefaultDbDareSchema>;
