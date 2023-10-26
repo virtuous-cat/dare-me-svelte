@@ -83,6 +83,7 @@
 
   socket.on("serverChat", (message) => {
     chatlog = [...chatlog, message];
+    // if (activeTab !== mobileTabs.CHAT) {newChat =true}
   });
 </script>
 

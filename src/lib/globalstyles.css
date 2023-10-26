@@ -153,13 +153,6 @@ a:focus-visible {
   color-scheme: dark;
 }
 
-body {
-  padding: 0.5rem;
-  @media (min-width: 500px) {
-    padding-inline: 1.25rem;
-  }
-}
-
 input,
 select,
 [contenteditable] {

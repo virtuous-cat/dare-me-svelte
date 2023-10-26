@@ -7,6 +7,39 @@ import {
 
 import { z } from "zod";
 
+export const darerTurnStages = {
+  SPIN: "spin",
+  SELECT: "select",
+  SENT: "sent",
+  ACCCEPTED: "accepted",
+  DECLINED: "declined",
+  COUNTERED: "countered",
+  END: "end",
+} as const;
+
+export type DarerTurnStage =
+  (typeof darerTurnStages)[keyof typeof darerTurnStages];
+
+export const dareeTurnStages = {
+  CONFIRM: "confirm",
+  DECLINED: "declined",
+  COUNTER: "counter",
+  COUNTER_SENT: "counter-set",
+  END: "end",
+} as const;
+
+export type DareeTurnStage =
+  (typeof dareeTurnStages)[keyof typeof dareeTurnStages];
+
+export const mobileTabs = {
+  PLAYERS: "players",
+  GAME_LOG: "game-log",
+  DARES: "dares",
+  CHAT: "chat",
+} as const;
+
+export type MobileTab = (typeof mobileTabs)[keyof typeof mobileTabs];
+
 export const GameCodeSchema = z.coerce
   .string()
   .trim()

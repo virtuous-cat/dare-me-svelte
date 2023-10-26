@@ -24,73 +24,82 @@
 </script>
 
 <svelte:window bind:scrollY={scroll} bind:innerHeight={screenHeight} />
-<header>
-  <nav>
-    <ul>
-      <li><a href="/">Home</a></li>
-      <li><a href="/about">About</a></li>
-      <li><a href="/dares">Dares</a></li>
-    </ul>
-  </nav>
-  {#if logIn}
-    <div class="login">
-      <form
-        id="login"
-        method="POST"
-        action="/?/login"
-        use:enhance={({ cancel }) => {
-          console.log("in use:enhance");
-          if (!logIn) {
-            console.log("no logIn");
-            cancel();
-            return;
-          }
-          if ($admin) {
-            console.log("logging out");
-            $admin = false;
-            cancel();
-            return;
-          }
-          loggingIn = true;
-          return async ({ result, update }) => {
-            if (result.type === "success") {
-              if (typeof result.data?.admin === "boolean") {
-                $admin = result.data?.admin;
-              }
-            } else if (result.type === "failure") {
-              console.error(result.data?.loginError);
+<div class="body">
+  <header>
+    <nav>
+      <ul>
+        <li><a href="/">Home</a></li>
+        <li><a href="/about">About</a></li>
+        <li><a href="/dares">Dares</a></li>
+      </ul>
+    </nav>
+    {#if logIn}
+      <div class="login">
+        <form
+          id="login"
+          method="POST"
+          action="/?/login"
+          use:enhance={({ cancel }) => {
+            console.log("in use:enhance");
+            if (!logIn) {
+              console.log("no logIn");
+              cancel();
+              return;
             }
-            await update();
-            loggingIn = false;
-          };
-        }}
-      />
+            if ($admin) {
+              console.log("logging out");
+              $admin = false;
+              cancel();
+              return;
+            }
+            loggingIn = true;
+            return async ({ result, update }) => {
+              if (result.type === "success") {
+                if (typeof result.data?.admin === "boolean") {
+                  $admin = result.data?.admin;
+                }
+              } else if (result.type === "failure") {
+                console.error(result.data?.loginError);
+              }
+              await update();
+              loggingIn = false;
+            };
+          }}
+        />
+        <Button
+          loading={loggingIn}
+          form="login"
+          name="adminKey"
+          value={logIn}
+          on:click={() => console.log("log in clicked")}
+          >{$admin ? "Log Out" : "Log In"}</Button
+        >
+      </div>
+    {/if}
+  </header>
+
+  <slot />
+
+  {#if scroll > screenHeight / 2}
+    <div class="top" transition:fade={{ duration: 200 }}>
       <Button
-        loading={loggingIn}
-        form="login"
-        name="adminKey"
-        value={logIn}
-        on:click={() => console.log("log in clicked")}
-        >{$admin ? "Log Out" : "Log In"}</Button
+        title="Scroll to Top"
+        on:click={() => {
+          window.scrollTo(0, 0);
+        }}>^</Button
       >
     </div>
   {/if}
-</header>
-
-<slot />
-
-{#if scroll > screenHeight / 2}
-  <div class="top" transition:fade={{ duration: 200 }}>
-    <Button
-      title="Scroll to Top"
-      on:click={() => {
-        window.scrollTo(0, 0);
-      }}>^</Button
-    >
-  </div>
-{/if}
+</div>
 
 <style>
+  .body {
+    padding: 8px;
+    @media (min-width: 500px) {
+      padding-inline: 20px;
+    }
+  }
+
   header {
     display: flex;
     flex-wrap: wrap;
