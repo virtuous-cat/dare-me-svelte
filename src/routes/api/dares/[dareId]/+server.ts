@@ -8,7 +8,7 @@ import { error, json } from "@sveltejs/kit";
 import cuid from "cuid";
 import { dummyDares } from "$lib/utils";
 import type { RequestHandler } from "./$types.js";
-import prisma from "$lib/prisma.js";
+import prisma from "$lib/server/prisma.js";
 import { Prisma } from "@prisma/client";
 
 export const GET = (async ({ params }) => {

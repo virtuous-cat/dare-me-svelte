@@ -6,7 +6,7 @@ import {
 
 import { fail } from "@sveltejs/kit";
 import type { Actions, PageServerLoad } from "./$types";
-import prisma from "$lib/prisma";
+import prisma from "$lib/server/prisma";
 
 export const load: PageServerLoad = async ({ fetch, url }) => {
   const res = await fetch(`/api/dares?${url.searchParams.toString()}`);

@@ -26,6 +26,7 @@ export const dareeTurnStages = {
   COUNTER: "counter",
   COUNTER_SENT: "counter-set",
   END: "end",
+  KEEP_DARE: "keep-dare",
 } as const;
 
 export type DareeTurnStage =

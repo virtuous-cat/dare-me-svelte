@@ -9,7 +9,7 @@
 </script>
 
 <script lang="ts">
-  import { createEventDispatcher } from "svelte";
+  import { createEventDispatcher, onMount } from "svelte";
   import {
     CATEGORY,
     DARE_STATUS,
@@ -29,6 +29,8 @@
   export let admin: boolean = false;
   export let isNewVariant: boolean = false;
   export let dareToAddId: string = "";
+
+  let textElement: HTMLParagraphElement;
 
   let newDareText = parentDare?.dareText ?? "";
   let newDarePartnered: boolean = parentDare ? parentDare.partnered : true;
@@ -58,7 +60,11 @@
     noChange = false;
   }
 
-  $: if (dareToAddId.length) {
+  $: if (
+    dareToAddId.length &&
+    newDareText.length &&
+    !(parentDare && isNewVariant && newDareText === parentDare.dareText)
+  ) {
     newDares.set(dareToAddId, {
       dareText: newDareText.trim(),
       status: newDareStatus,
@@ -76,11 +82,20 @@
   }
 
   const dispatch = createEventDispatcher();
+
+  onMount(() => {
+    textElement.focus();
+  });
 </script>
 
 <div class="wrapper" transition:slide>
   <div class="text">
-    <p contenteditable class="new-dare-text" bind:textContent={newDareText} />
+    <p
+      contenteditable
+      class="new-dare-text"
+      bind:this={textElement}
+      bind:textContent={newDareText}
+    />
     {#if newDareText.trim().length > 700}
       <small class="alert" transition:slide
         >Dares may only contain upto 700 characters. Current count: {newDareText.trim()
@@ -151,7 +166,7 @@
     <Button
       disabled={saving}
       on:click={() => {
-        if (window.confirm("Discard changes?")) {
+        if (window.confirm("Discard changes to this dare?")) {
           newDares.delete(dareToAddId);
           dispatch("discard");
         }

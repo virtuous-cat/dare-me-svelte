@@ -3,7 +3,7 @@ import { fail, redirect } from "@sveltejs/kit";
 
 import { ADMIN_KEY } from "$env/static/private";
 import { customAlphabet } from "nanoid";
-import redis from "$lib/server/redis.js";
+import redis, { DEFAULT_EXPIRE } from "$lib/server/redis.js";
 import type { Actions } from "./$types";
 
 console.log("(site) page.server in");
@@ -37,6 +37,7 @@ export const actions = {
     try {
       const newCode = await generateCode(5);
       const saved = await redis.hset(`game:${newCode}`, { turn: 0 });
+      await redis.expire(`game:${newCode}`, DEFAULT_EXPIRE);
       if (saved === 0) {
         throw new Error("Failed to create game in redis");
       }
@@ -119,14 +120,14 @@ export const actions = {
       categories: JSON.parse(rawCategories),
     };
 
-    console.log("gameOptions", gameOptions)
+    console.log("gameOptions", gameOptions);
 
     const gameOptionsResult = GameOptionsSchema.safeParse(gameOptions);
     if (!gameOptionsResult.success) {
       const errorMessages = gameOptionsResult.error.format();
       console.error("error in gameOptions", errorMessages);
       const delGame = await redis.del(`game:${codeResult.data}`);
-      console.log(`deleted game ${codeResult.data} from redis`, delGame)
+      console.log(`deleted game ${codeResult.data} from redis`, delGame);
       return fail(400, {
         gameLaunched: false,
         launchGameErrors: {

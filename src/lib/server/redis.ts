@@ -3,9 +3,11 @@ import Redis from "ioredis";
 
 const redis = new Redis(REDIS_URL);
 
-redis.on('error', function (error) {
-  console.log("error from lib redis")
-  console.dir(error)
-})
+redis.on("error", function (error) {
+  console.log("error from lib redis");
+  console.dir(error);
+});
+
+export const DEFAULT_EXPIRE = 21600; // 6 hours
 
 export default redis;
