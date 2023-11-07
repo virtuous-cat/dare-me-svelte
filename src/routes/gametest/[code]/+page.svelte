@@ -48,27 +48,28 @@
     // sessionStorage.removeItem("playerName");
   }
 
-  // onMount(() => {
-  //   clientPlayerName = sessionStorage.getItem("playerName") ?? "";
-  //   clientPlayerId = sessionStorage.getItem("playerId") ?? "";
-  //   gameCode = sessionStorage.getItem("gameCode") ?? "";
+  onMount(() => {
+    daresModal.showModal();
+    // clientPlayerName = sessionStorage.getItem("playerName") ?? "";
+    // clientPlayerId = sessionStorage.getItem("playerId") ?? "";
+    // gameCode = sessionStorage.getItem("gameCode") ?? "";
 
-  //   if (!(clientPlayerId && clientPlayerName && gameCode)) {
-  //     wipeStorage();
-  //     goto("/?message=gameerror");
-  //   }
-  //   socket.auth = {
-  //     gameRoom: gameCode,
-  //     playerId: clientPlayerId,
-  //     playerName: clientPlayerName,
-  //   };
-  //   socket.connect();
+    // if (!(clientPlayerId && clientPlayerName && gameCode)) {
+    //   wipeStorage();
+    //   goto("/?message=gameerror");
+    // }
+    // socket.auth = {
+    //   gameRoom: gameCode,
+    //   playerId: clientPlayerId,
+    //   playerName: clientPlayerName,
+    // };
+    // socket.connect();
 
-  //   return () => {
-  //     socket.disconnect();
-  //     socket.off("connect_error");
-  //   };
-  // });
+    // return () => {
+    //   socket.disconnect();
+    //   socket.off("connect_error");
+    // };
+  });
 
   let chatlog: ServerChat[] = [];
 
@@ -151,8 +152,9 @@
   let newChat: boolean = false;
 
   let daresModal: HTMLDialogElement;
-  $: soloDaresToSave = [...clientSoloDares];
-  $: partneredDaresToSave = [...clientPartneredDares];
+  let soloDaresToSave: DareWithChildren[] = [];
+  let partneredDaresToSave: DareWithChildren[] = [];
+  $: totalDaresToSave = soloDaresToSave.length + partneredDaresToSave.length;
   let saveToPublic: boolean = true;
   let randomDare: DareWithChildren | null = null;
   let savedAllSuccess: boolean = false;
@@ -166,12 +168,12 @@
   const allSelectedVariantIds = writable<string[]>([]);
   setContext("allSelectedVariantIds", allSelectedVariantIds);
 
-  let editInProcess: boolean = false;
   let daresToAdd: (NewDareState & {
     parentDare?: DareWithChildren;
     replaceParent?: boolean;
   })[] = [];
   let markNewIds: string[] = [];
+  let GameNewDareIds: string[] = [];
 
   $: dares = [...data.dares];
 
@@ -313,7 +315,13 @@
         {#if wide}
           <h2>Your Dares</h2>
         {/if}
-        <Button>Manage Dares</Button>
+        <Button
+          on:click={() => {
+            soloDaresToSave = [...clientSoloDares];
+            partneredDaresToSave = [...clientPartneredDares];
+            daresModal.showModal();
+          }}>Manage Dares</Button
+        >
       </header>
       {#if clientSoloDares.length + clientPartneredDares.length < 3}
         <p class="alert">
@@ -439,7 +447,41 @@
     </footer>
   {/if}
 </div>
-<Modal bind:modal={daresModal}>
+<Modal
+  bind:modal={daresModal}
+  on:cancel={(e) => {
+    const newDaresMap = getAllNewDares();
+    if (
+      newDaresMap.size ||
+      soloDaresToSave.length !== clientSoloDares.length ||
+      partneredDaresToSave.length !== clientPartneredDares.length ||
+      !clientSoloDares.every((clientDare) =>
+        soloDaresToSave.some((dare) => dare.dareId === clientDare.dareId)
+      ) ||
+      !soloDaresToSave.every((dare) =>
+        clientSoloDares.some((clientDare) => dare.dareId === clientDare.dareId)
+      ) ||
+      !clientPartneredDares.every((clientDare) =>
+        partneredDaresToSave.some((dare) => dare.dareId === clientDare.dareId)
+      ) ||
+      !partneredDaresToSave.every((dare) =>
+        clientPartneredDares.some(
+          (clientDare) => dare.dareId === clientDare.dareId
+        )
+      )
+    ) {
+      if (!window.confirm(`Discard all changes?`)) {
+        e.preventDefault();
+        return;
+      }
+    }
+    daresToAdd = [];
+    partneredDaresToSave = [];
+    soloDaresToSave = [];
+    markNewIds = [];
+  }}
+>
+  <!-- TODO: figure out handling interruption -->
   <p>
     Choose 3-10 dares you want to do. You must always have at least 2 solo
     dares. You can update your dares throughout the game.
@@ -479,13 +521,27 @@
                 }}>Add New Variant</Button
               >
               <Button
-                disabled={partneredDaresToSave.some(
-                  ({ dareId }) => dareId === filteredDare.dare.dareId
-                ) ||
-                  soloDaresToSave.some(
-                    ({ dareId }) => dareId === filteredDare.dare.dareId
-                  )}
                 on:click={() => {
+                  if (
+                    partneredDaresToSave.some(
+                      ({ dareId }) => dareId === filteredDare.dare.dareId
+                    )
+                  ) {
+                    partneredDaresToSave = partneredDaresToSave.filter(
+                      ({ dareId }) => dareId !== filteredDare.dare.dareId
+                    );
+                    return;
+                  }
+                  if (
+                    soloDaresToSave.some(
+                      ({ dareId }) => dareId === filteredDare.dare.dareId
+                    )
+                  ) {
+                    soloDaresToSave = soloDaresToSave.filter(
+                      ({ dareId }) => dareId !== filteredDare.dare.dareId
+                    );
+                    return;
+                  }
                   if (filteredDare.dare.partnered) {
                     partneredDaresToSave = [
                       ...partneredDaresToSave,
@@ -529,10 +585,25 @@
                 }}>Add New Variant</Button
               >
               <Button
-                disabled={partneredDaresToSave.some(
-                  ({ dareId }) => dareId === variantId
-                ) || soloDaresToSave.some(({ dareId }) => dareId === variantId)}
                 on:click={() => {
+                  if (
+                    partneredDaresToSave.some(
+                      ({ dareId }) => dareId === variantId
+                    )
+                  ) {
+                    partneredDaresToSave = partneredDaresToSave.filter(
+                      ({ dareId }) => dareId !== variantId
+                    );
+                    return;
+                  }
+                  if (
+                    soloDaresToSave.some(({ dareId }) => dareId === variantId)
+                  ) {
+                    soloDaresToSave = soloDaresToSave.filter(
+                      ({ dareId }) => dareId !== variantId
+                    );
+                    return;
+                  }
                   const dare = filteredDare.dare.children.find(
                     ({ dareId }) => dareId === variantId
                   );
@@ -594,12 +665,28 @@
           }}>Add New Variant</Button
         >
         <Button
-          disabled={partneredDaresToSave.some(
-            ({ dareId }) => dareId === randomDare?.dareId
-          ) ||
-            soloDaresToSave.some(({ dareId }) => dareId === randomDare?.dareId)}
           on:click={() => {
             if (!randomDare) {
+              return;
+            }
+            if (
+              partneredDaresToSave.some(
+                ({ dareId }) => dareId === randomDare?.dareId
+              )
+            ) {
+              partneredDaresToSave = partneredDaresToSave.filter(
+                ({ dareId }) => dareId !== randomDare?.dareId
+              );
+              return;
+            }
+            if (
+              soloDaresToSave.some(
+                ({ dareId }) => dareId === randomDare?.dareId
+              )
+            ) {
+              soloDaresToSave = soloDaresToSave.filter(
+                ({ dareId }) => dareId !== randomDare?.dareId
+              );
               return;
             }
             if (randomDare.partnered) {
@@ -640,10 +727,21 @@
           }}>Add New Variant</Button
         >
         <Button
-          disabled={partneredDaresToSave.some(
-            ({ dareId }) => dareId === variantId
-          ) || soloDaresToSave.some(({ dareId }) => dareId === variantId)}
           on:click={() => {
+            if (
+              partneredDaresToSave.some(({ dareId }) => dareId === variantId)
+            ) {
+              partneredDaresToSave = partneredDaresToSave.filter(
+                ({ dareId }) => dareId !== variantId
+              );
+              return;
+            }
+            if (soloDaresToSave.some(({ dareId }) => dareId === variantId)) {
+              soloDaresToSave = soloDaresToSave.filter(
+                ({ dareId }) => dareId !== variantId
+              );
+              return;
+            }
             const dare = randomDare?.children.find(
               ({ dareId }) => dareId === variantId
             );
@@ -692,6 +790,9 @@
                   dare.saving = false;
                   return;
                 }
+                if (!saveToPublic) {
+                  parsedDare.data.status = DARE_STATUS.Enum.private;
+                }
                 const response = await fetch("/api/dares/new", {
                   method: "POST",
                   body: JSON.stringify(parsedDare.data),
@@ -715,6 +816,7 @@
                   return;
                 }
                 markNewIds = [dareAdded.data.dareId];
+                GameNewDareIds = [...GameNewDareIds, dareAdded.data.dareId];
                 if (dareAdded.data.partnered) {
                   partneredDaresToSave = [
                     ...partneredDaresToSave.filter((dareInList) => {
@@ -833,9 +935,9 @@
             }
             const daresAdded = parsedReturned.data;
             markNewIds = [];
-            daresAdded.forEach(
-              ({ dareId }) => (markNewIds = [...markNewIds, dareId])
-            );
+            const newDareIds = daresAdded.map(({ dareId }) => dareId);
+            markNewIds = [...newDareIds];
+            GameNewDareIds = [...GameNewDareIds, ...newDareIds];
             soloDaresToSave = [
               ...soloDaresToSave.filter((dare) => {
                 const dareToAdd = daresToAdd.find(
@@ -916,7 +1018,7 @@
   {/if}
 
   <h3>Your Dares</h3>
-  {#if clientSoloDares.length + clientPartneredDares.length < 3}
+  {#if totalDaresToSave < 3}
     <p class="alert">Please choose at least 3 dares.</p>
   {/if}
   <h3>Solo</h3>
@@ -941,29 +1043,122 @@
                 ];
               }}>Replace with New Variant</Button
             >
-            <!-- TODO -->
-            <Button>Remove</Button>
+            <Button
+              on:click={() => {
+                soloDaresToSave = soloDaresToSave.filter(
+                  ({ dareId }) => dareId !== dare.dareId
+                );
+              }}>Remove</Button
+            >
           </svelte:fragment>
         </Dare>
       </li>
-    {:else}
-      <p class="alert">Please choose at least 2 solo dares.</p>
     {/each}
+    {#if soloDaresToSave.length < 2}
+      <p class="alert">Please choose at least 2 solo dares.</p>
+    {/if}
   </ul>
   <h3>Partnered</h3>
   <ul class="client-dares">
     {#each partneredDaresToSave as dare (dare.dareId)}
-      <!-- TODO -->
-      <li><Dare /></li>
+      <li>
+        <Dare {dare} withDetails>
+          <svelte:fragment slot="buttons">
+            <Button
+              on:click={() => {
+                daresToAdd = [
+                  ...daresToAdd,
+                  {
+                    saved: false,
+                    saving: false,
+                    removed: false,
+                    errors: [],
+                    dareToAddId: nanoid(),
+                    parentDare: dare,
+                    replaceParent: true,
+                  },
+                ];
+              }}>Replace with New Variant</Button
+            >
+            <Button
+              on:click={() => {
+                partneredDaresToSave = partneredDaresToSave.filter(
+                  ({ dareId }) => dareId !== dare.dareId
+                );
+              }}>Remove</Button
+            >
+          </svelte:fragment>
+        </Dare>
+      </li>
     {/each}
   </ul>
-  {#if clientSoloDares.length + clientPartneredDares.length > 10}
-    <p class="alert">Maximum 10 dares. Unable to save.</p>
+  {#if totalDaresToSave > 10}
+    <p class="alert">Maximum 10 dares exceeded. Unable to save.</p>
   {/if}
   <div class="modal-buttons">
-    <!-- TODO -->
-    <Button>Cancel</Button>
-    <Button>Save</Button>
+    <Button
+      on:click={() => {
+        const newDaresMap = getAllNewDares();
+        if (
+          newDaresMap.size ||
+          soloDaresToSave.length !== clientSoloDares.length ||
+          partneredDaresToSave.length !== clientPartneredDares.length ||
+          !clientSoloDares.every((clientDare) =>
+            soloDaresToSave.some((dare) => dare.dareId === clientDare.dareId)
+          ) ||
+          !soloDaresToSave.every((dare) =>
+            clientSoloDares.some(
+              (clientDare) => dare.dareId === clientDare.dareId
+            )
+          ) ||
+          !clientPartneredDares.every((clientDare) =>
+            partneredDaresToSave.some(
+              (dare) => dare.dareId === clientDare.dareId
+            )
+          ) ||
+          !partneredDaresToSave.every((dare) =>
+            clientPartneredDares.some(
+              (clientDare) => dare.dareId === clientDare.dareId
+            )
+          )
+        ) {
+          if (!window.confirm(`Discard all changes?`)) {
+            return;
+          }
+        }
+        daresToAdd = [];
+        partneredDaresToSave = [];
+        soloDaresToSave = [];
+        markNewIds = [];
+        daresModal.close();
+      }}>Cancel</Button
+    >
+    <Button
+      disabled={savingAll ||
+        daresToAdd.some(({ saving }) => saving) ||
+        totalDaresToSave > 10 ||
+        totalDaresToSave < 3 ||
+        soloDaresToSave.length < 2}
+      on:click={() => {
+        const newDaresMap = getAllNewDares();
+        if (newDaresMap.size) {
+          if (
+            !window.confirm(
+              `You have unsaved new dares. Discard unsaved new dares and save your selected dares without adding them?`
+            )
+          ) {
+            return;
+          }
+          daresToAdd = [];
+        }
+        clientPartneredDares = [...partneredDaresToSave];
+        clientSoloDares = [...soloDaresToSave];
+        markNewIds = [];
+        // socket event update client dares
+        // socket event update new game dares
+        daresModal.close();
+      }}>Save</Button
+    >
   </div>
 </Modal>
 
