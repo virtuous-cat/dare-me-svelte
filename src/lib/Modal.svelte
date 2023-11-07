@@ -2,7 +2,7 @@
   export let modal: HTMLDialogElement;
 </script>
 
-<dialog bind:this={modal} on:close>
+<dialog bind:this={modal} on:close on:cancel>
   <slot />
 </dialog>
 
