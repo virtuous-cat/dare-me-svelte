@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Button from "./Button.svelte";
   import TextInput from "./TextInput.svelte";
   import { TagSchema } from "./db.types";
 
@@ -26,15 +27,33 @@
     {/each}
   </ul>
 </div>
-<TextInput
-  name="new-tag"
-  bind:value={newTag}
-  schema={TagSchema.shape.name}
-  ariaLabel="Add new tag"
-  warnings={tagWarnings}
-  on:keydown={(e) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
+<div class="input-group">
+  <TextInput
+    name="new-tag"
+    bind:value={newTag}
+    schema={TagSchema.shape.name}
+    ariaLabel="Add new tag"
+    warnings={tagWarnings}
+    on:keydown={(e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        const parsedTag = TagSchema.shape.name.safeParse(newTag);
+        if (!parsedTag.success) {
+          tagWarnings = parsedTag.error.format()._errors;
+          return;
+        }
+        if (!tags.includes(parsedTag.data)) {
+          tags = [...tags, parsedTag.data];
+        }
+        newTag = "";
+      }
+    }}
+  />
+  <Button
+    on:click={() => {
+      if (!newTag) {
+        return;
+      }
       const parsedTag = TagSchema.shape.name.safeParse(newTag);
       if (!parsedTag.success) {
         tagWarnings = parsedTag.error.format()._errors;
@@ -44,9 +63,9 @@
         tags = [...tags, parsedTag.data];
       }
       newTag = "";
-    }
-  }}
-/>
+    }}>Add</Button
+  >
+</div>
 
 <style>
   :global(.tags-list-wrapper) {
@@ -77,5 +96,9 @@
   }
   .tags-list-wrapper {
     margin-block-end: 0.5rem;
+  }
+  .input-group {
+    display: flex;
+    gap: 8px;
   }
 </style>
