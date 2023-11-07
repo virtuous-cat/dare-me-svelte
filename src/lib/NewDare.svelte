@@ -9,7 +9,7 @@
 </script>
 
 <script lang="ts">
-  import { createEventDispatcher, onMount } from "svelte";
+  import { createEventDispatcher, onDestroy, onMount } from "svelte";
   import {
     CATEGORY,
     DARE_STATUS,
@@ -85,6 +85,11 @@
 
   onMount(() => {
     textElement.focus();
+  });
+  onDestroy(() => {
+    if (dareToAddId.length) {
+      newDares.delete(dareToAddId);
+    }
   });
 </script>
 
