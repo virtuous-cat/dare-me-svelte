@@ -1456,6 +1456,44 @@
 
   main {
     grid-row: 2/3;
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: fit-content 1fr;
+    grid-template-areas:
+      "status"
+      "panel";
+    @media (min-width: 700px) {
+      grid-template-columns: minmax(100px, 1fr) 3fr minmax(100px, 1fr);
+      grid-template-rows: 2fr 1fr;
+      grid-template-areas:
+        "players gamelog gamelog"
+        "dares dares chat";
+    }
+  }
+
+  .players {
+    grid-area: panel;
+    @media (min-width: 700px) {
+      grid-area: players;
+    }
+  }
+  .gamelog {
+    grid-area: 1/1/-1/-1;
+    @media (min-width: 700px) {
+      grid-area: gamelog;
+    }
+  }
+  .dares {
+    grid-area: panel;
+    @media (min-width: 700px) {
+      grid-area: dares;
+    }
+  }
+  .chat {
+    grid-area: panel;
+    @media (min-width: 700px) {
+      grid-area: chat;
+    }
   }
 
   footer {
@@ -1480,5 +1518,16 @@
     aspect-ratio: 1;
     border-radius: 50%;
     background-color: var(--accent-color);
+  }
+
+  .new {
+    outline: 1px solid var(--pop-color);
+  }
+  .dares li {
+    margin-block-start: 1rem;
+    padding: 1rem;
+    border-radius: calc(var(--border-radius-small) + 0.5rem);
+    border: 1px solid var(--accent-color);
+    box-shadow: 0px 0px 20px 0px var(--accent-color) inset;
   }
 </style>
