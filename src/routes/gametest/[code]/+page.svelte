@@ -32,6 +32,7 @@
   import { fade, slide } from "svelte/transition";
   import NewDare, { getAllNewDares } from "$lib/NewDare.svelte";
   import { writable, type Writable } from "svelte/store";
+  import DisplayDare from "$lib/DisplayDare.svelte";
 
   let clientPlayerName: string = "Player Name";
   let clientPlayerId: string = "bed95d35-9040-4c77-a5a4-55aab4bfe878";
@@ -142,16 +143,26 @@
     ],
   ]);
   let host: string = "";
+  $: clientIsDarer = clientPlayerId === darer;
+  $: clientIsDaree = clientPlayerId === daree;
   let gameLog: { text: string; dareText?: string }[] = [];
   let currentGameActivity: string = "Waiting for players to choose dares.";
   let currentDare: GameDare;
   let showCurrentDare: boolean = false;
   let darerTurnStage: DarerTurnStage = darerTurnStages.SPIN;
+  let spinning: boolean = false;
+  let dareeDares: GameDare[] = [];
+  $: dareeSoloDares = dareeDares.filter(({ partnered }) => !partnered);
+  $: dareePartneredDares = dareeDares.filter(({ partnered }) => partnered);
+  let darerPartneredDares: GameDare[] = [];
+  let clientPreviousDare: GameDare | null = null;
   let dareeTurnStage: DareeTurnStage = dareeTurnStages.CONFIRM;
   let activeTab: MobileTab = mobileTabs.PLAYERS;
   let newChat: boolean = false;
 
   let daresModal: HTMLDialogElement;
+  let interruptModal: HTMLDialogElement;
+  let interrupted: boolean = false;
   let soloDaresToSave: DareWithChildren[] = [];
   let partneredDaresToSave: DareWithChildren[] = [];
   $: totalDaresToSave = soloDaresToSave.length + partneredDaresToSave.length;
@@ -229,6 +240,17 @@
     >
   </header>
   <main>
+    {#if !wide && !(activeTab === mobileTabs.GAME_LOG)}
+      <div class="current-activity" role="status">
+        <p>{currentGameActivity}</p>
+        {#if showCurrentDare}
+          <p>{currentDare.dareText}</p>
+          <!-- {#if currentDare.timer}
+            TODO: build timer
+          {/if} -->
+        {/if}
+      </div>
+    {/if}
     <section
       id="players-tabpanel"
       class="players"
@@ -291,14 +313,261 @@
         {/each}
       </ul>
       <div>
-        {#if wide}
+        {#if clientIsDarer && darerTurnStage === darerTurnStages.SPIN}
+          <p>It's your turn to select a dare for someone!</p>
+          <p>Spin to find out who you'll be daring:</p>
+          {#if spinning}
+            <!-- TODO: animation -->
+            Spinning...
+          {:else if daree}
+            <p class="daree">
+              <strong>{players.get(daree)?.playerName}</strong>
+            </p>
+          {:else}
+            <Button
+              on:click={() => {
+                spinning = true;
+                setTimeout(() => {
+                  spinning = false;
+                }, 2000);
+              }}>Spin</Button
+            >
+          {/if}
+        {:else if clientIsDarer && darerTurnStage === darerTurnStages.SELECT}
+          <p>Choose a Dare for {players.get(daree)?.playerName} to preform.</p>
+          <p>
+            <small
+              >If you choose a <strong>Partnered</strong> dare, {players.get(
+                daree
+              )?.playerName} will have the opportunity to decline and ask you to
+              choose a <strong>Solo</strong> dare, or counteroffer.</small
+            >
+          </p>
+          {#if dareePartneredDares.length}
+            <h3>{players.get(daree)?.playerName}'s Partnered Dares</h3>
+            <ul>
+              {#each dareePartneredDares as dare (dare.dareId)}
+                <li>
+                  <DisplayDare {dare}
+                    ><svelte:fragment slot="buttons">
+                      <Button>Select</Button>
+                    </svelte:fragment></DisplayDare
+                  >
+                </li>
+              {/each}
+            </ul>
+          {/if}
+          <h3>{players.get(daree)?.playerName}'s Solo Dares</h3>
+          <ul>
+            {#each dareeSoloDares as dare (dare.dareId)}
+              <li>
+                <DisplayDare {dare}
+                  ><svelte:fragment slot="buttons">
+                    <Button>Select</Button>
+                  </svelte:fragment></DisplayDare
+                >
+              </li>
+            {/each}
+          </ul>
+        {:else if clientIsDarer && darerTurnStage === darerTurnStages.SENT}
+          <p>
+            {players.get(daree)?.playerName} is considering the dare you selected.
+          </p>
+          <DisplayDare dare={currentDare} />
+        {:else if clientIsDarer && darerTurnStage === darerTurnStages.ACCEPTED}
+          <p>
+            {players.get(daree)?.playerName} agreed to the dare you selected!
+          </p>
+          <DisplayDare dare={currentDare} />
+        {:else if clientIsDarer && darerTurnStage === darerTurnStages.DECLINED}
+          <p>
+            {players.get(daree)?.playerName} declined the dare you selected. Please
+            choose one of their <strong>Solo</strong> dares:
+          </p>
+          <h3>{players.get(daree)?.playerName}'s Solo Dares</h3>
+          <ul>
+            {#each dareeSoloDares as dare (dare.dareId)}
+              <li>
+                <DisplayDare {dare}
+                  ><svelte:fragment slot="buttons">
+                    <Button>Select</Button>
+                  </svelte:fragment></DisplayDare
+                >
+              </li>
+            {/each}
+          </ul>
+        {:else if clientIsDarer && darerTurnStage === darerTurnStages.COUNTERED}
+          <p>
+            {players.get(daree)?.playerName} declined the dare you selected, but
+            offered to preform this dare instead:
+          </p>
+          <DisplayDare dare={currentDare} />
+          <p>
+            <Button>Accept the Counteroffer</Button> Or Choose one of {players.get(
+              daree
+            )?.playerName}'s <strong>Solo</strong> dares:
+          </p>
+          <h3>{players.get(daree)?.playerName}'s Solo Dares</h3>
+          <ul>
+            {#each dareeSoloDares as dare (dare.dareId)}
+              <li>
+                <DisplayDare {dare}
+                  ><svelte:fragment slot="buttons">
+                    <Button>Select</Button>
+                  </svelte:fragment></DisplayDare
+                >
+              </li>
+            {/each}
+          </ul>
+        {:else if clientIsDarer && darerTurnStage === darerTurnStages.END}
+          <p>You dared {players.get(daree)?.playerName} to:</p>
+          <p>{currentDare.dareText}</p>
+          <!-- {#if currentDare.timer}
+                  TODO build timer
+                {/if}  -->
+          <Button>End Your Turn</Button>
+        {:else if clientIsDaree && dareeTurnStage === dareeTurnStages.CONFIRM}
+          <p>
+            {players.get(darer)?.playerName} has dared you to:
+          </p>
+          <DisplayDare dare={currentDare} />
+          <p>How do you want to respond?</p>
+          <Button>Accept Dare</Button>
+
+          <p>
+            <Button>Decline</Button> and have {players.get(darer)?.playerName} choose
+            one of your <strong>Solo</strong> dares.
+          </p>
+          <p>
+            Or counteroffer, by selecting a different dare from either of your <strong
+              >Partnered</strong
+            > dares.
+          </p>
+          <p>
+            <small
+              >{players.get(darer)?.playerName} will have the opportunity to decline
+              and choose one of your <strong>Solo</strong> dares instead.</small
+            >
+          </p>
+
+          {#if darerPartneredDares.length}
+            <h3>{players.get(darer)?.playerName}'s Partnered Dares</h3>
+            <ul>
+              {#each dareePartneredDares as dare (dare.dareId)}
+                <li>
+                  <DisplayDare {dare}
+                    ><svelte:fragment slot="buttons">
+                      <Button>Select</Button>
+                    </svelte:fragment></DisplayDare
+                  >
+                </li>
+              {/each}
+            </ul>
+          {/if}
+          {#if dareePartneredDares.length}
+            <h3>Your Partnered Dares</h3>
+            <ul>
+              {#each dareePartneredDares as dare (dare.dareId)}
+                <li>
+                  <DisplayDare {dare}
+                    ><svelte:fragment slot="buttons">
+                      <Button>Select</Button>
+                    </svelte:fragment></DisplayDare
+                  >
+                </li>
+              {/each}
+            </ul>
+          {/if}
+        {:else if clientIsDaree && dareeTurnStage === dareeTurnStages.DECLINED}
+          <p>
+            {players.get(darer)?.playerName} is choosing one of your
+            <strong>Solo</strong> dares.
+          </p>
+        {:else if clientIsDaree && dareeTurnStage === dareeTurnStages.COUNTERED}
+          <p>
+            {players.get(darer)?.playerName} is considering your counteroffer.
+          </p>
+          <DisplayDare dare={currentDare} />
+        {:else if clientIsDaree && dareeTurnStage === dareeTurnStages.COUNTER_ACCEPTED}
+          <p>
+            {players.get(darer)?.playerName} accepted your counteroffer!
+          </p>
+          <DisplayDare dare={currentDare} />
+        {:else if clientIsDaree && dareeTurnStage === dareeTurnStages.COUNTER_DECLINED}
+          <p>
+            {players.get(daree)?.playerName} declined your counteroffer, and instead
+            dares you to:.
+          </p>
+          <DisplayDare dare={currentDare} />
+        {:else if clientIsDaree && dareeTurnStage === dareeTurnStages.END}
+          <p>{players.get(darer)?.playerName} dared you to:</p>
+          <p>{currentDare.dareText}</p>
+          <!-- {#if currentDare.timer}
+                TODO build timer
+              {/if}  -->
+          <Button
+            on:click={() => {
+              clientPreviousDare = currentDare;
+              daree = "";
+              darer = "";
+              dareeTurnStage = dareeTurnStages.KEEP_DARE;
+            }}>End Your Turn</Button
+          >
+        {:else if dareeTurnStage === dareeTurnStages.KEEP_DARE && clientPreviousDare}
+          <p>Would you like to keep this dare in your dare list?</p>
+          <DisplayDare dare={clientPreviousDare} />
+          <div>
+            <Button
+              on:click={() => {
+                dareeTurnStage = dareeTurnStages.CONFIRM;
+              }}>Keep Dare</Button
+            >
+            {#if !(!clientPreviousDare.partnered && clientSoloDares.length <= 2)}
+              <Button
+                on:click={() => {
+                  if (clientPreviousDare?.partnered) {
+                    clientPartneredDares = clientPartneredDares.filter(
+                      ({ dareId }) => dareId !== clientPreviousDare?.dareId
+                    );
+                  } else {
+                    clientSoloDares = clientSoloDares.filter(
+                      ({ dareId }) => dareId !== clientPreviousDare?.dareId
+                    );
+                  }
+                  dareeTurnStage = dareeTurnStages.CONFIRM;
+                }}>Remove Dare</Button
+              >
+            {/if}
+            <Button
+              on:click={() => {
+                if (clientPreviousDare?.partnered) {
+                  clientPartneredDares = clientPartneredDares.filter(
+                    ({ dareId }) => dareId !== clientPreviousDare?.dareId
+                  );
+                } else {
+                  clientSoloDares = clientSoloDares.filter(
+                    ({ dareId }) => dareId !== clientPreviousDare?.dareId
+                  );
+                }
+                activeTab = mobileTabs.DARES;
+                dareeTurnStage = dareeTurnStages.CONFIRM;
+                if (!interrupted) {
+                  soloDaresToSave = [...clientSoloDares];
+                  partneredDaresToSave = [...clientPartneredDares];
+                }
+                interrupted = false;
+                daresModal.showModal();
+              }}>Replace Dare</Button
+            >
+          </div>
+        {:else}
           <div class="current-activity" role="status">
             <p>{currentGameActivity}</p>
             {#if showCurrentDare}
               <p>{currentDare.dareText}</p>
               <!-- {#if currentDare.timer}
-              TODO build timer
-            {/if} -->
+                  TODO build timer
+                {/if}  -->
             {/if}
           </div>
         {/if}
@@ -317,10 +586,13 @@
         {/if}
         <Button
           on:click={() => {
-            soloDaresToSave = [...clientSoloDares];
-            partneredDaresToSave = [...clientPartneredDares];
+            if (!interrupted) {
+              soloDaresToSave = [...clientSoloDares];
+              partneredDaresToSave = [...clientPartneredDares];
+            }
+            interrupted = false;
             daresModal.showModal();
-          }}>Manage Dares</Button
+          }}>{interrupted ? `Cont. ` : ""}Update Dares</Button
         >
       </header>
       {#if clientSoloDares.length + clientPartneredDares.length < 3}
@@ -373,17 +645,6 @@
         }}
       /><Button on:click={sendChat}>Send</Button>
     </section>
-    {#if !wide && !(activeTab === mobileTabs.GAME_LOG && (clientPlayerId === darer || clientPlayerId === daree))}
-      <div class="current-activity" role="status">
-        <p>{currentGameActivity}</p>
-        {#if showCurrentDare}
-          <p>{currentDare.dareText}</p>
-          <!-- {#if currentDare.timer}
-            TODO: build timer
-          {/if} -->
-        {/if}
-      </div>
-    {/if}
   </main>
   {#if !wide}
     <footer>
@@ -481,10 +742,12 @@
     markNewIds = [];
   }}
 >
-  <!-- TODO: figure out handling interruption -->
   <p>
-    Choose 3-10 dares you want to do. You must always have at least 2 solo
-    dares. You can update your dares throughout the game.
+    Choose 3-10 dares you want to do. You must always have at least 2 <strong
+      >Solo</strong
+    >
+    dares. You should be prepared to do any of your <strong>Solo</strong> dares at
+    any time. You can update your dares throughout the game.
   </p>
   <h3>All Dares</h3>
   <div class="all-dares">
@@ -1055,7 +1318,7 @@
       </li>
     {/each}
     {#if soloDaresToSave.length < 2}
-      <p class="alert">Please choose at least 2 solo dares.</p>
+      <p class="alert">Please choose at least 2 <strong>Solo</strong> dares.</p>
     {/if}
   </ul>
   <h3>Partnered</h3>
@@ -1160,6 +1423,19 @@
       }}>Save</Button
     >
   </div>
+</Modal>
+<Modal
+  bind:modal={interruptModal}
+  on:close={() => {
+    interrupted = true;
+    daresModal.close();
+  }}
+>
+  <p>You're up!</p>
+  <p>
+    You will be able to come back and pick up where you left off afterwards.
+  </p>
+  <Button on:click={() => interruptModal.close()}>Show Game Activity</Button>
 </Modal>
 
 <style>
