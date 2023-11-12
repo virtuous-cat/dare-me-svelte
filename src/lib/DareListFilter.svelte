@@ -30,7 +30,7 @@
 
   const tagFilter = getContext<Writable<string[]>>("filteredTags");
 
-  let showFilters = true;
+  export let showFilters = true;
   let categoryFilter: Category[] = [];
   let interactionFilter: Interaction[] = [];
   let statusFilter: DareStatus[] = [];

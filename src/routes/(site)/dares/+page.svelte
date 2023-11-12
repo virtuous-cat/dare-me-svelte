@@ -295,6 +295,7 @@
       loggedIn={$loggedIn}
       admin={$admin}
       dares={daresWithSavedVariants}
+      showFilters
     >
       <MultiUpdate
         slot="controls"
