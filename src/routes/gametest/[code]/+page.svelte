@@ -24,7 +24,6 @@
     type NewDareState,
     type StatefulDare,
   } from "$lib/db.types";
-  import { i } from "vitest/dist/index-5aad25c1";
   import Modal from "$lib/Modal.svelte";
   import DareListFilter from "$lib/DareListFilter.svelte";
   import Dare from "$lib/Dare.svelte";
@@ -112,7 +111,7 @@
   // });
 
   export let data;
-  export let form;
+  // export let form;
   // const admin = getContext<Writable<boolean>>("admin");
   // const loggedIn = getContext<Writable<boolean>>("admin");
   // TODO: Update when Auth
@@ -254,7 +253,7 @@
     <section
       id="players-tabpanel"
       class="players"
-      class:inactive={activeTab !== mobileTabs.PLAYERS}
+      class:inactive={!wide && activeTab !== mobileTabs.PLAYERS}
       role={!wide ? "tabpanel" : undefined}
       aria-labelledby={!wide ? "players-tab" : undefined}
     >
@@ -293,7 +292,7 @@
     <section
       id="gamelog-tabpanel"
       class="gamelog"
-      class:inactive={activeTab !== mobileTabs.GAME_LOG}
+      class:inactive={!wide && activeTab !== mobileTabs.GAME_LOG}
       role={!wide ? "tabpanel" : undefined}
       aria-labelledby={!wide ? "gamelog-tab" : undefined}
     >
@@ -576,7 +575,7 @@
     <section
       id="dares-tabpanel"
       class="dares"
-      class:inactive={activeTab !== mobileTabs.DARES}
+      class:inactive={!wide && activeTab !== mobileTabs.DARES}
       role={!wide ? "tabpanel" : undefined}
       aria-labelledby={!wide ? "dares-tab" : undefined}
     >
@@ -620,7 +619,7 @@
     <section
       id="chat-tabpanel"
       class="chat"
-      class:inactive={activeTab !== mobileTabs.CHAT}
+      class:inactive={!wide && activeTab !== mobileTabs.CHAT}
       role={!wide ? "tabpanel" : undefined}
       aria-labelledby={!wide ? "chat-tab" : undefined}
     >
@@ -742,33 +741,190 @@
     markNewIds = [];
   }}
 >
-  <p>
-    Choose 3-10 dares you want to do. You must always have at least 2 <strong
-      >Solo</strong
-    >
-    dares. You should be prepared to do any of your <strong>Solo</strong> dares at
-    any time. You can update your dares throughout the game.
-  </p>
-  <h3>All Dares</h3>
-  <div class="all-dares">
-    <DareListFilter bind:filtered {dares} />
-    <ul id="dare-list" class="dares">
-      {#each $filteredDares as filteredDare (filteredDare.dare.dareId)}
-        <li class={markNewIds.includes(filteredDare.dare.dareId) ? "new" : ""}>
-          <Dare
-            dare={filteredDare.dare}
-            {loggedIn}
-            expand={filtered ||
-              filteredDare.dare.children.some((variant) =>
-                markNewIds.includes(variant.dareId)
-              )}
-            {markNewIds}
-            withDetails
-            withVariants
-          >
+  <div class="dares-modal">
+    <p>
+      Choose 3-10 dares you want to do. You must always have at least 2 <strong
+        >Solo</strong
+      >
+      dares. You should be prepared to do any of your <strong>Solo</strong> dares
+      at any time. You can update your dares throughout the game.
+    </p>
+    <section class="db-dares">
+      <h3>All Dares</h3>
+      <div class="all-dares">
+        <DareListFilter bind:filtered {dares} showFilters={false} />
+        <ul id="dare-list" class="dares-box">
+          {#each $filteredDares as filteredDare (filteredDare.dare.dareId)}
+            <li
+              class={markNewIds.includes(filteredDare.dare.dareId) ? "new" : ""}
+            >
+              <Dare
+                dare={filteredDare.dare}
+                {loggedIn}
+                expand={filtered ||
+                  filteredDare.dare.children.some((variant) =>
+                    markNewIds.includes(variant.dareId)
+                  )}
+                {markNewIds}
+                withDetails
+                withVariants
+              >
+                <svelte:fragment slot="buttons">
+                  <Button
+                    on:click={() => {
+                      daresToAdd = [
+                        ...daresToAdd,
+                        {
+                          saved: false,
+                          saving: false,
+                          removed: false,
+                          errors: [],
+                          dareToAddId: nanoid(),
+                          parentDare: filteredDare.dare,
+                          replaceParent: false,
+                        },
+                      ];
+                    }}>Add New Variant</Button
+                  >
+                  <Button
+                    on:click={() => {
+                      if (
+                        partneredDaresToSave.some(
+                          ({ dareId }) => dareId === filteredDare.dare.dareId
+                        )
+                      ) {
+                        partneredDaresToSave = partneredDaresToSave.filter(
+                          ({ dareId }) => dareId !== filteredDare.dare.dareId
+                        );
+                        return;
+                      }
+                      if (
+                        soloDaresToSave.some(
+                          ({ dareId }) => dareId === filteredDare.dare.dareId
+                        )
+                      ) {
+                        soloDaresToSave = soloDaresToSave.filter(
+                          ({ dareId }) => dareId !== filteredDare.dare.dareId
+                        );
+                        return;
+                      }
+                      if (filteredDare.dare.partnered) {
+                        partneredDaresToSave = [
+                          ...partneredDaresToSave,
+                          filteredDare.dare,
+                        ];
+                      } else {
+                        soloDaresToSave = [
+                          ...soloDaresToSave,
+                          filteredDare.dare,
+                        ];
+                      }
+                    }}
+                    >{partneredDaresToSave.some(
+                      ({ dareId }) => dareId === filteredDare.dare.dareId
+                    ) ||
+                    soloDaresToSave.some(
+                      ({ dareId }) => dareId === filteredDare.dare.dareId
+                    )
+                      ? "Selected!"
+                      : "Select"}</Button
+                  >
+                </svelte:fragment>
+                <svelte:fragment slot="variant-buttons" let:variantId>
+                  <Button
+                    on:click={() => {
+                      const variant = filteredDare.dare.children.find(
+                        (child) => child.dareId === variantId
+                      );
+                      if (!variant) {
+                        return;
+                      }
+                      daresToAdd = [
+                        ...daresToAdd,
+                        {
+                          saved: false,
+                          saving: false,
+                          removed: false,
+                          errors: [],
+                          dareToAddId: nanoid(),
+                          parentDare: { ...variant, children: [] },
+                          replaceParent: false,
+                        },
+                      ];
+                    }}>Add New Variant</Button
+                  >
+                  <Button
+                    on:click={() => {
+                      if (
+                        partneredDaresToSave.some(
+                          ({ dareId }) => dareId === variantId
+                        )
+                      ) {
+                        partneredDaresToSave = partneredDaresToSave.filter(
+                          ({ dareId }) => dareId !== variantId
+                        );
+                        return;
+                      }
+                      if (
+                        soloDaresToSave.some(
+                          ({ dareId }) => dareId === variantId
+                        )
+                      ) {
+                        soloDaresToSave = soloDaresToSave.filter(
+                          ({ dareId }) => dareId !== variantId
+                        );
+                        return;
+                      }
+                      const dare = filteredDare.dare.children.find(
+                        ({ dareId }) => dareId === variantId
+                      );
+                      if (dare) {
+                        if (dare.partnered) {
+                          partneredDaresToSave = [
+                            ...partneredDaresToSave,
+                            { ...dare, children: [] },
+                          ];
+                        } else {
+                          soloDaresToSave = [
+                            ...soloDaresToSave,
+                            { ...dare, children: [] },
+                          ];
+                        }
+                      }
+                    }}
+                    >{partneredDaresToSave.some(
+                      ({ dareId }) => dareId === variantId
+                    ) ||
+                    soloDaresToSave.some(({ dareId }) => dareId === variantId)
+                      ? "Selected!"
+                      : "Select"}</Button
+                  >
+                </svelte:fragment>
+              </Dare>
+            </li>
+          {:else}
+            <li>No Dares Found</li>
+          {/each}
+        </ul>
+      </div>
+    </section>
+    <p>Or</p>
+    <section class="random-dare">
+      <Button
+        on:click={() => {
+          const randomIndex = Math.floor(Math.random() * dares.length);
+          randomDare = dares[randomIndex];
+        }}>Find a Random Dare</Button
+      >
+      {#if randomDare}
+        <div class="solo-dare">
+          <Dare dare={randomDare} withDetails withVariants>
             <svelte:fragment slot="buttons">
               <Button
                 on:click={() => {
+                  if (!randomDare) {
+                    return;
+                  }
                   daresToAdd = [
                     ...daresToAdd,
                     {
@@ -777,7 +933,7 @@
                       removed: false,
                       errors: [],
                       dareToAddId: nanoid(),
-                      parentDare: filteredDare.dare,
+                      parentDare: randomDare,
                       replaceParent: false,
                     },
                   ];
@@ -785,40 +941,43 @@
               >
               <Button
                 on:click={() => {
+                  if (!randomDare) {
+                    return;
+                  }
                   if (
                     partneredDaresToSave.some(
-                      ({ dareId }) => dareId === filteredDare.dare.dareId
+                      ({ dareId }) => dareId === randomDare?.dareId
                     )
                   ) {
                     partneredDaresToSave = partneredDaresToSave.filter(
-                      ({ dareId }) => dareId !== filteredDare.dare.dareId
+                      ({ dareId }) => dareId !== randomDare?.dareId
                     );
                     return;
                   }
                   if (
                     soloDaresToSave.some(
-                      ({ dareId }) => dareId === filteredDare.dare.dareId
+                      ({ dareId }) => dareId === randomDare?.dareId
                     )
                   ) {
                     soloDaresToSave = soloDaresToSave.filter(
-                      ({ dareId }) => dareId !== filteredDare.dare.dareId
+                      ({ dareId }) => dareId !== randomDare?.dareId
                     );
                     return;
                   }
-                  if (filteredDare.dare.partnered) {
+                  if (randomDare.partnered) {
                     partneredDaresToSave = [
                       ...partneredDaresToSave,
-                      filteredDare.dare,
+                      randomDare,
                     ];
                   } else {
-                    soloDaresToSave = [...soloDaresToSave, filteredDare.dare];
+                    soloDaresToSave = [...soloDaresToSave, randomDare];
                   }
                 }}
                 >{partneredDaresToSave.some(
-                  ({ dareId }) => dareId === filteredDare.dare.dareId
+                  ({ dareId }) => dareId === randomDare?.dareId
                 ) ||
                 soloDaresToSave.some(
-                  ({ dareId }) => dareId === filteredDare.dare.dareId
+                  ({ dareId }) => dareId === randomDare?.dareId
                 )
                   ? "Selected!"
                   : "Select"}</Button
@@ -827,7 +986,7 @@
             <svelte:fragment slot="variant-buttons" let:variantId>
               <Button
                 on:click={() => {
-                  const variant = filteredDare.dare.children.find(
+                  const variant = randomDare?.children.find(
                     (child) => child.dareId === variantId
                   );
                   if (!variant) {
@@ -867,7 +1026,7 @@
                     );
                     return;
                   }
-                  const dare = filteredDare.dare.children.find(
+                  const dare = randomDare?.children.find(
                     ({ dareId }) => dareId === variantId
                   );
                   if (dare) {
@@ -892,173 +1051,148 @@
               >
             </svelte:fragment>
           </Dare>
-        </li>
-      {:else}
-        <li>No Dares Found</li>
-      {/each}
-    </ul>
-  </div>
-  <p>Or</p>
-  <Button
-    on:click={() => {
-      const randomIndex = Math.floor(Math.random() * dares.length);
-      randomDare = dares[randomIndex];
-    }}>Find a Random Dare</Button
-  >
-  {#if randomDare}
-    <Dare dare={randomDare} withDetails withVariants>
-      <svelte:fragment slot="buttons">
-        <Button
-          on:click={() => {
-            if (!randomDare) {
-              return;
-            }
-            daresToAdd = [
-              ...daresToAdd,
-              {
-                saved: false,
-                saving: false,
-                removed: false,
-                errors: [],
-                dareToAddId: nanoid(),
-                parentDare: randomDare,
-                replaceParent: false,
-              },
-            ];
-          }}>Add New Variant</Button
-        >
-        <Button
-          on:click={() => {
-            if (!randomDare) {
-              return;
-            }
-            if (
-              partneredDaresToSave.some(
-                ({ dareId }) => dareId === randomDare?.dareId
-              )
-            ) {
-              partneredDaresToSave = partneredDaresToSave.filter(
-                ({ dareId }) => dareId !== randomDare?.dareId
-              );
-              return;
-            }
-            if (
-              soloDaresToSave.some(
-                ({ dareId }) => dareId === randomDare?.dareId
-              )
-            ) {
-              soloDaresToSave = soloDaresToSave.filter(
-                ({ dareId }) => dareId !== randomDare?.dareId
-              );
-              return;
-            }
-            if (randomDare.partnered) {
-              partneredDaresToSave = [...partneredDaresToSave, randomDare];
-            } else {
-              soloDaresToSave = [...soloDaresToSave, randomDare];
-            }
-          }}
-          >{partneredDaresToSave.some(
-            ({ dareId }) => dareId === randomDare?.dareId
-          ) ||
-          soloDaresToSave.some(({ dareId }) => dareId === randomDare?.dareId)
-            ? "Selected!"
-            : "Select"}</Button
-        >
-      </svelte:fragment>
-      <svelte:fragment slot="variant-buttons" let:variantId>
-        <Button
-          on:click={() => {
-            const variant = randomDare?.children.find(
-              (child) => child.dareId === variantId
-            );
-            if (!variant) {
-              return;
-            }
-            daresToAdd = [
-              ...daresToAdd,
-              {
-                saved: false,
-                saving: false,
-                removed: false,
-                errors: [],
-                dareToAddId: nanoid(),
-                parentDare: { ...variant, children: [] },
-                replaceParent: false,
-              },
-            ];
-          }}>Add New Variant</Button
-        >
-        <Button
-          on:click={() => {
-            if (
-              partneredDaresToSave.some(({ dareId }) => dareId === variantId)
-            ) {
-              partneredDaresToSave = partneredDaresToSave.filter(
-                ({ dareId }) => dareId !== variantId
-              );
-              return;
-            }
-            if (soloDaresToSave.some(({ dareId }) => dareId === variantId)) {
-              soloDaresToSave = soloDaresToSave.filter(
-                ({ dareId }) => dareId !== variantId
-              );
-              return;
-            }
-            const dare = randomDare?.children.find(
-              ({ dareId }) => dareId === variantId
-            );
-            if (dare) {
-              if (dare.partnered) {
-                partneredDaresToSave = [
-                  ...partneredDaresToSave,
-                  { ...dare, children: [] },
+        </div>
+      {/if}
+    </section>
+    <p>Or</p>
+    <section class="new-dares">
+      {#if daresToAdd.length}
+        <h3 transition:fade>New Dares</h3>
+        <div class="new-dares-wrapper" out:fade>
+          <ul aria-label="dares to be submitted" transition:slide>
+            {#each daresToAdd as dare (dare.dareToAddId)}
+              <li>
+                <NewDare
+                  on:discard={() => {
+                    dare.removed = true;
+                    daresToAdd = daresToAdd.filter((dare) => !dare.removed);
+                  }}
+                  on:save={async (e) => {
+                    dare.saving = true;
+                    dare.errors = [];
+                    const parsedDare = DareDbInputSchema.safeParse(
+                      e.detail.newDare
+                    );
+                    if (!parsedDare.success) {
+                      dare.errors = ["Error saving dare."];
+                      dare.saving = false;
+                      return;
+                    }
+                    if (!saveToPublic) {
+                      parsedDare.data.status = DARE_STATUS.Enum.private;
+                    }
+                    const response = await fetch("/api/dares/new", {
+                      method: "POST",
+                      body: JSON.stringify(parsedDare.data),
+                      headers: {
+                        "Content-Type": "application/json",
+                        Accept: "application/json",
+                      },
+                    });
+                    if (!response.ok) {
+                      const error = await response.json();
+                      dare.errors = [...dare.errors, error.message];
+                      dare.saving = false;
+                      return;
+                    }
+                    const dareAddedRes = await response.json();
+                    const dareAdded =
+                      DareWithChildrenSchema.safeParse(dareAddedRes);
+                    if (!dareAdded.success) {
+                      dare.errors = [...dare.errors, "Error in dare response."];
+                      dare.saving = false;
+                      return;
+                    }
+                    markNewIds = [dareAdded.data.dareId];
+                    GameNewDareIds = [...GameNewDareIds, dareAdded.data.dareId];
+                    if (dareAdded.data.partnered) {
+                      partneredDaresToSave = [
+                        ...partneredDaresToSave.filter((dareInList) => {
+                          return !(
+                            dare.replaceParent &&
+                            dareInList.dareId === dare.parentDare?.dareId
+                          );
+                        }),
+                        dareAdded.data,
+                      ];
+                    }
+                    if (!dareAdded.data.partnered) {
+                      soloDaresToSave = [
+                        ...soloDaresToSave.filter((dareInList) => {
+                          return !(
+                            dare.replaceParent &&
+                            dareInList.dareId === dare.parentDare?.dareId
+                          );
+                        }),
+                        dareAdded.data,
+                      ];
+                    }
+                    dare.saved = true;
+                    setTimeout(() => {
+                      dare.saving = false;
+                      daresToAdd = daresToAdd.filter((dare) => !dare.saved);
+                    }, 1000);
+                    invalidateAll();
+                  }}
+                  saving={dare.saving}
+                  dareToAddId={dare.dareToAddId}
+                  parentDare={dare.parentDare ?? null}
+                  isNewVariant={!!dare.parentDare?.dareId}
+                />
+                {#if dare.saved}
+                  <p transition:slide class="alert">Dare Saved & Selected!</p>
+                {/if}
+                {#each dare.errors as error}
+                  <small class="alert">{error}</small>
+                {/each}
+              </li>
+            {/each}
+          </ul>
+          <small class="alert">{saveAllError}</small>
+          <label>
+            <input type="checkbox" bind:checked={saveToPublic} />
+            Save dares to public dare list, pending review. New dares will still
+            be available to players in this game when unchecked.
+          </label>
+          <div class="new-dares-btn" transition:fade>
+            <Button
+              on:click={() => {
+                daresToAdd = [
+                  ...daresToAdd,
+                  {
+                    saved: false,
+                    saving: false,
+                    removed: false,
+                    errors: [],
+                    dareToAddId: nanoid(),
+                  },
                 ];
-              } else {
-                soloDaresToSave = [
-                  ...soloDaresToSave,
-                  { ...dare, children: [] },
-                ];
-              }
-            }
-          }}
-          >{partneredDaresToSave.some(({ dareId }) => dareId === variantId) ||
-          soloDaresToSave.some(({ dareId }) => dareId === variantId)
-            ? "Selected!"
-            : "Select"}</Button
-        >
-      </svelte:fragment>
-    </Dare>
-  {/if}
-  <p>Or</p>
-  {#if daresToAdd.length}
-    <h2 transition:fade>New Dares</h2>
-    <div class="new-dares-wrapper" out:fade>
-      <ul aria-label="dares to be submitted" transition:slide>
-        {#each daresToAdd as dare (dare.dareToAddId)}
-          <li>
-            <NewDare
-              on:discard={() => {
-                dare.removed = true;
-                daresToAdd = daresToAdd.filter((dare) => !dare.removed);
-              }}
-              on:save={async (e) => {
-                dare.saving = true;
-                dare.errors = [];
-                const parsedDare = DareDbInputSchema.safeParse(
-                  e.detail.newDare
-                );
-                if (!parsedDare.success) {
-                  dare.errors = ["Error saving dare."];
-                  dare.saving = false;
-                  return;
+              }}>+</Button
+            >
+          </div>
+          <div class="new-dares-btn" transition:fade>
+            <Button
+              on:click={async () => {
+                savingAll = true;
+                saveAllError = "";
+                for (const dare of daresToAdd) {
+                  dare.saving = true;
                 }
-                if (!saveToPublic) {
-                  parsedDare.data.status = DARE_STATUS.Enum.private;
+                const newDaresMap = getAllNewDares();
+                for (const [key, value] of newDaresMap.entries()) {
+                  if (
+                    !daresToAdd.some(({ dareToAddId }) => dareToAddId === key)
+                  ) {
+                    newDaresMap.delete(key);
+                  }
+                  if (!saveToPublic) {
+                    value.status = DARE_STATUS.Enum.private;
+                  }
                 }
-                const response = await fetch("/api/dares/new", {
+                const newDares = Array.from(newDaresMap);
+                const response = await fetch("/api/dares", {
                   method: "POST",
-                  body: JSON.stringify(parsedDare.data),
+                  body: JSON.stringify(newDares),
                   headers: {
                     "Content-Type": "application/json",
                     Accept: "application/json",
@@ -1066,71 +1200,98 @@
                 });
                 if (!response.ok) {
                   const error = await response.json();
-                  dare.errors = [...dare.errors, error.message];
-                  dare.saving = false;
+                  saveAllError = error.message;
+                  for (const dare of daresToAdd) {
+                    dare.saving = false;
+                  }
+                  savingAll = false;
                   return;
                 }
-                const dareAddedRes = await response.json();
-                const dareAdded =
-                  DareWithChildrenSchema.safeParse(dareAddedRes);
-                if (!dareAdded.success) {
-                  dare.errors = [...dare.errors, "Error in dare response."];
-                  dare.saving = false;
+                const { daresAddedToDb, failedIds } = await response.json();
+                const parsedReturned =
+                  DareWithChildrenSchema.array().safeParse(daresAddedToDb);
+                if (!parsedReturned.success || !parsedReturned.data.length) {
+                  console.error(
+                    !parsedReturned.success
+                      ? parsedReturned.error.format()
+                      : "No saved dares returned"
+                  );
+                  saveAllError = "Server error encountered while saving.";
+                  for (const dare of daresToAdd) {
+                    dare.saving = false;
+                  }
+                  savingAll = false;
                   return;
                 }
-                markNewIds = [dareAdded.data.dareId];
-                GameNewDareIds = [...GameNewDareIds, dareAdded.data.dareId];
-                if (dareAdded.data.partnered) {
-                  partneredDaresToSave = [
-                    ...partneredDaresToSave.filter((dareInList) => {
-                      return !(
-                        dare.replaceParent &&
-                        dareInList.dareId === dare.parentDare?.dareId
-                      );
-                    }),
-                    dareAdded.data,
-                  ];
+                const daresAdded = parsedReturned.data;
+                markNewIds = [];
+                const newDareIds = daresAdded.map(({ dareId }) => dareId);
+                markNewIds = [...newDareIds];
+                GameNewDareIds = [...GameNewDareIds, ...newDareIds];
+                soloDaresToSave = [
+                  ...soloDaresToSave.filter((dare) => {
+                    const dareToAdd = daresToAdd.find(
+                      ({ parentDare }) => parentDare?.dareId === dare.dareId
+                    );
+                    const replaceParent = dareToAdd
+                      ? !!dareToAdd.replaceParent
+                      : false;
+                    return !(
+                      replaceParent &&
+                      daresAdded.some(
+                        (addedDare) => addedDare.parentId === dare.dareId
+                      )
+                    );
+                  }),
+                  ...daresAdded.filter(({ partnered }) => !partnered),
+                ];
+                partneredDaresToSave = [
+                  ...partneredDaresToSave.filter((dare) => {
+                    const dareToAdd = daresToAdd.find(
+                      ({ parentDare }) => parentDare?.dareId === dare.dareId
+                    );
+                    const replaceParent = dareToAdd
+                      ? !!dareToAdd.replaceParent
+                      : false;
+                    return !(
+                      replaceParent &&
+                      daresAdded.some(
+                        (addedDare) => addedDare.parentId === dare.dareId
+                      )
+                    );
+                  }),
+                  ...daresAdded.filter(({ partnered }) => partnered),
+                ];
+                for (const dare of daresToAdd) {
+                  if (!failedIds.includes(dare.dareToAddId)) {
+                    dare.saved = true;
+                  }
+                  dare.saving = false;
                 }
-                if (!dareAdded.data.partnered) {
-                  soloDaresToSave = [
-                    ...soloDaresToSave.filter((dareInList) => {
-                      return !(
-                        dare.replaceParent &&
-                        dareInList.dareId === dare.parentDare?.dareId
-                      );
-                    }),
-                    dareAdded.data,
-                  ];
+                if (failedIds.length) {
+                  saveAllError = `Error saving above dare${
+                    daresToAdd.length > 1 ? "s" : ""
+                  }, please try again.`;
                 }
-                dare.saved = true;
+                savedAllSuccess = true;
+                savingAll = false;
                 setTimeout(() => {
-                  dare.saving = false;
                   daresToAdd = daresToAdd.filter((dare) => !dare.saved);
+                  savedAllSuccess = false;
                 }, 1000);
                 invalidateAll();
               }}
-              saving={dare.saving}
-              dareToAddId={dare.dareToAddId}
-              parentDare={dare.parentDare ?? null}
-              isNewVariant={!!dare.parentDare?.dareId}
-            />
-            {#if dare.saved}
-              <p transition:slide class="alert">Dare Saved & Selected!</p>
-            {/if}
-            {#each dare.errors as error}
-              <small class="alert">{error}</small>
-            {/each}
-          </li>
-        {/each}
-      </ul>
-      <small class="alert">{saveAllError}</small>
-      <label>
-        <input type="checkbox" bind:checked={saveToPublic} />
-        Save dares to public dare list, pending review. New dares will still be available
-        to players in this game when unchecked.
-      </label>
-      <div class="new-dares-btn" transition:fade>
+              loading={savingAll}
+              disabled={savedAllSuccess ||
+                savingAll ||
+                daresToAdd.some((dare) => dare.saving)}
+              >{savedAllSuccess ? "Selected!" : "Save & Select all"}</Button
+            >
+          </div>
+        </div>
+      {:else}
         <Button
+          className="new-button"
           on:click={() => {
             daresToAdd = [
               ...daresToAdd,
@@ -1142,286 +1303,159 @@
                 dareToAddId: nanoid(),
               },
             ];
-          }}>+</Button
+          }}>Add New Dares</Button
         >
+      {/if}
+    </section>
+    <section class="your-dares">
+      <h3>Your Dares</h3>
+      <div class="client-dares-wrapper">
+        {#if totalDaresToSave < 3}
+          <p class="alert">Please choose at least 3 dares.</p>
+        {/if}
+        <h3>Solo</h3>
+        <ul class="client-dares dares-box">
+          {#each soloDaresToSave as dare (dare.dareId)}
+            <li>
+              <Dare {dare} withDetails>
+                <svelte:fragment slot="buttons">
+                  <Button
+                    on:click={() => {
+                      daresToAdd = [
+                        ...daresToAdd,
+                        {
+                          saved: false,
+                          saving: false,
+                          removed: false,
+                          errors: [],
+                          dareToAddId: nanoid(),
+                          parentDare: dare,
+                          replaceParent: true,
+                        },
+                      ];
+                    }}>Replace with New Variant</Button
+                  >
+                  <Button
+                    on:click={() => {
+                      soloDaresToSave = soloDaresToSave.filter(
+                        ({ dareId }) => dareId !== dare.dareId
+                      );
+                    }}>Remove</Button
+                  >
+                </svelte:fragment>
+              </Dare>
+            </li>
+          {/each}
+          {#if soloDaresToSave.length < 2}
+            <p class="alert">
+              Please choose at least 2 <strong>Solo</strong> dares.
+            </p>
+          {/if}
+        </ul>
+        <h3>Partnered</h3>
+        <ul class="client-dares dares-box">
+          {#each partneredDaresToSave as dare (dare.dareId)}
+            <li>
+              <Dare {dare} withDetails>
+                <svelte:fragment slot="buttons">
+                  <Button
+                    on:click={() => {
+                      daresToAdd = [
+                        ...daresToAdd,
+                        {
+                          saved: false,
+                          saving: false,
+                          removed: false,
+                          errors: [],
+                          dareToAddId: nanoid(),
+                          parentDare: dare,
+                          replaceParent: true,
+                        },
+                      ];
+                    }}>Replace with New Variant</Button
+                  >
+                  <Button
+                    on:click={() => {
+                      partneredDaresToSave = partneredDaresToSave.filter(
+                        ({ dareId }) => dareId !== dare.dareId
+                      );
+                    }}>Remove</Button
+                  >
+                </svelte:fragment>
+              </Dare>
+            </li>
+          {/each}
+        </ul>
+        {#if totalDaresToSave > 10}
+          <p class="alert">Maximum 10 dares exceeded. Unable to save.</p>
+        {/if}
       </div>
-      <div class="new-dares-btn" transition:fade>
-        <Button
-          on:click={async () => {
-            savingAll = true;
-            saveAllError = "";
-            for (const dare of daresToAdd) {
-              dare.saving = true;
-            }
-            const newDaresMap = getAllNewDares();
-            for (const [key, value] of newDaresMap.entries()) {
-              if (!daresToAdd.some(({ dareToAddId }) => dareToAddId === key)) {
-                newDaresMap.delete(key);
-              }
-              if (!saveToPublic) {
-                value.status = DARE_STATUS.Enum.private;
-              }
-            }
-            const newDares = Array.from(newDaresMap);
-            const response = await fetch("/api/dares", {
-              method: "POST",
-              body: JSON.stringify(newDares),
-              headers: {
-                "Content-Type": "application/json",
-                Accept: "application/json",
-              },
-            });
-            if (!response.ok) {
-              const error = await response.json();
-              saveAllError = error.message;
-              for (const dare of daresToAdd) {
-                dare.saving = false;
-              }
-              savingAll = false;
-              return;
-            }
-            const { daresAddedToDb, failedIds } = await response.json();
-            const parsedReturned =
-              DareWithChildrenSchema.array().safeParse(daresAddedToDb);
-            if (!parsedReturned.success || !parsedReturned.data.length) {
-              console.error(
-                !parsedReturned.success
-                  ? parsedReturned.error.format()
-                  : "No saved dares returned"
-              );
-              saveAllError = "Server error encountered while saving.";
-              for (const dare of daresToAdd) {
-                dare.saving = false;
-              }
-              savingAll = false;
-              return;
-            }
-            const daresAdded = parsedReturned.data;
-            markNewIds = [];
-            const newDareIds = daresAdded.map(({ dareId }) => dareId);
-            markNewIds = [...newDareIds];
-            GameNewDareIds = [...GameNewDareIds, ...newDareIds];
-            soloDaresToSave = [
-              ...soloDaresToSave.filter((dare) => {
-                const dareToAdd = daresToAdd.find(
-                  ({ parentDare }) => parentDare?.dareId === dare.dareId
-                );
-                const replaceParent = dareToAdd
-                  ? !!dareToAdd.replaceParent
-                  : false;
-                return !(
-                  replaceParent &&
-                  daresAdded.some(
-                    (addedDare) => addedDare.parentId === dare.dareId
-                  )
-                );
-              }),
-              ...daresAdded.filter(({ partnered }) => !partnered),
-            ];
-            partneredDaresToSave = [
-              ...partneredDaresToSave.filter((dare) => {
-                const dareToAdd = daresToAdd.find(
-                  ({ parentDare }) => parentDare?.dareId === dare.dareId
-                );
-                const replaceParent = dareToAdd
-                  ? !!dareToAdd.replaceParent
-                  : false;
-                return !(
-                  replaceParent &&
-                  daresAdded.some(
-                    (addedDare) => addedDare.parentId === dare.dareId
-                  )
-                );
-              }),
-              ...daresAdded.filter(({ partnered }) => partnered),
-            ];
-            for (const dare of daresToAdd) {
-              if (!failedIds.includes(dare.dareToAddId)) {
-                dare.saved = true;
-              }
-              dare.saving = false;
-            }
-            if (failedIds.length) {
-              saveAllError = `Error saving above dare${
-                daresToAdd.length > 1 ? "s" : ""
-              }, please try again.`;
-            }
-            savedAllSuccess = true;
-            savingAll = false;
-            setTimeout(() => {
-              daresToAdd = daresToAdd.filter((dare) => !dare.saved);
-              savedAllSuccess = false;
-            }, 1000);
-            invalidateAll();
-          }}
-          loading={savingAll}
-          disabled={savedAllSuccess ||
-            savingAll ||
-            daresToAdd.some((dare) => dare.saving)}
-          >{savedAllSuccess ? "Selected!" : "Save & Select all"}</Button
-        >
-      </div>
-    </div>
-  {:else}
-    <Button
-      className="new-button"
-      on:click={() => {
-        daresToAdd = [
-          ...daresToAdd,
-          {
-            saved: false,
-            saving: false,
-            removed: false,
-            errors: [],
-            dareToAddId: nanoid(),
-          },
-        ];
-      }}>Add New Dares</Button
-    >
-  {/if}
-
-  <h3>Your Dares</h3>
-  {#if totalDaresToSave < 3}
-    <p class="alert">Please choose at least 3 dares.</p>
-  {/if}
-  <h3>Solo</h3>
-  <ul class="client-dares">
-    {#each soloDaresToSave as dare (dare.dareId)}
-      <li>
-        <Dare {dare} withDetails>
-          <svelte:fragment slot="buttons">
-            <Button
-              on:click={() => {
-                daresToAdd = [
-                  ...daresToAdd,
-                  {
-                    saved: false,
-                    saving: false,
-                    removed: false,
-                    errors: [],
-                    dareToAddId: nanoid(),
-                    parentDare: dare,
-                    replaceParent: true,
-                  },
-                ];
-              }}>Replace with New Variant</Button
-            >
-            <Button
-              on:click={() => {
-                soloDaresToSave = soloDaresToSave.filter(
-                  ({ dareId }) => dareId !== dare.dareId
-                );
-              }}>Remove</Button
-            >
-          </svelte:fragment>
-        </Dare>
-      </li>
-    {/each}
-    {#if soloDaresToSave.length < 2}
-      <p class="alert">Please choose at least 2 <strong>Solo</strong> dares.</p>
-    {/if}
-  </ul>
-  <h3>Partnered</h3>
-  <ul class="client-dares">
-    {#each partneredDaresToSave as dare (dare.dareId)}
-      <li>
-        <Dare {dare} withDetails>
-          <svelte:fragment slot="buttons">
-            <Button
-              on:click={() => {
-                daresToAdd = [
-                  ...daresToAdd,
-                  {
-                    saved: false,
-                    saving: false,
-                    removed: false,
-                    errors: [],
-                    dareToAddId: nanoid(),
-                    parentDare: dare,
-                    replaceParent: true,
-                  },
-                ];
-              }}>Replace with New Variant</Button
-            >
-            <Button
-              on:click={() => {
-                partneredDaresToSave = partneredDaresToSave.filter(
-                  ({ dareId }) => dareId !== dare.dareId
-                );
-              }}>Remove</Button
-            >
-          </svelte:fragment>
-        </Dare>
-      </li>
-    {/each}
-  </ul>
-  {#if totalDaresToSave > 10}
-    <p class="alert">Maximum 10 dares exceeded. Unable to save.</p>
-  {/if}
-  <div class="modal-buttons">
-    <Button
-      on:click={() => {
-        const newDaresMap = getAllNewDares();
-        if (
-          newDaresMap.size ||
-          soloDaresToSave.length !== clientSoloDares.length ||
-          partneredDaresToSave.length !== clientPartneredDares.length ||
-          !clientSoloDares.every((clientDare) =>
-            soloDaresToSave.some((dare) => dare.dareId === clientDare.dareId)
-          ) ||
-          !soloDaresToSave.every((dare) =>
-            clientSoloDares.some(
-              (clientDare) => dare.dareId === clientDare.dareId
-            )
-          ) ||
-          !clientPartneredDares.every((clientDare) =>
-            partneredDaresToSave.some(
-              (dare) => dare.dareId === clientDare.dareId
-            )
-          ) ||
-          !partneredDaresToSave.every((dare) =>
-            clientPartneredDares.some(
-              (clientDare) => dare.dareId === clientDare.dareId
-            )
-          )
-        ) {
-          if (!window.confirm(`Discard all changes?`)) {
-            return;
-          }
-        }
-        daresToAdd = [];
-        partneredDaresToSave = [];
-        soloDaresToSave = [];
-        markNewIds = [];
-        daresModal.close();
-      }}>Cancel</Button
-    >
-    <Button
-      disabled={savingAll ||
-        daresToAdd.some(({ saving }) => saving) ||
-        totalDaresToSave > 10 ||
-        totalDaresToSave < 3 ||
-        soloDaresToSave.length < 2}
-      on:click={() => {
-        const newDaresMap = getAllNewDares();
-        if (newDaresMap.size) {
+    </section>
+    <div class="modal-buttons">
+      <Button
+        on:click={() => {
+          const newDaresMap = getAllNewDares();
           if (
-            !window.confirm(
-              `You have unsaved new dares. Discard unsaved new dares and save your selected dares without adding them?`
+            newDaresMap.size ||
+            soloDaresToSave.length !== clientSoloDares.length ||
+            partneredDaresToSave.length !== clientPartneredDares.length ||
+            !clientSoloDares.every((clientDare) =>
+              soloDaresToSave.some((dare) => dare.dareId === clientDare.dareId)
+            ) ||
+            !soloDaresToSave.every((dare) =>
+              clientSoloDares.some(
+                (clientDare) => dare.dareId === clientDare.dareId
+              )
+            ) ||
+            !clientPartneredDares.every((clientDare) =>
+              partneredDaresToSave.some(
+                (dare) => dare.dareId === clientDare.dareId
+              )
+            ) ||
+            !partneredDaresToSave.every((dare) =>
+              clientPartneredDares.some(
+                (clientDare) => dare.dareId === clientDare.dareId
+              )
             )
           ) {
-            return;
+            if (!window.confirm(`Discard all changes?`)) {
+              return;
+            }
           }
           daresToAdd = [];
-        }
-        clientPartneredDares = [...partneredDaresToSave];
-        clientSoloDares = [...soloDaresToSave];
-        markNewIds = [];
-        // socket event update client dares
-        // socket event update new game dares
-        daresModal.close();
-      }}>Save</Button
-    >
+          partneredDaresToSave = [];
+          soloDaresToSave = [];
+          markNewIds = [];
+          daresModal.close();
+        }}>Cancel</Button
+      >
+      <Button
+        disabled={savingAll ||
+          daresToAdd.some(({ saving }) => saving) ||
+          totalDaresToSave > 10 ||
+          totalDaresToSave < 3 ||
+          soloDaresToSave.length < 2}
+        on:click={() => {
+          const newDaresMap = getAllNewDares();
+          if (newDaresMap.size) {
+            if (
+              !window.confirm(
+                `You have unsaved new dares. Discard unsaved new dares and save your selected dares without adding them?`
+              )
+            ) {
+              return;
+            }
+            daresToAdd = [];
+          }
+          clientPartneredDares = [...partneredDaresToSave];
+          clientSoloDares = [...soloDaresToSave];
+          markNewIds = [];
+          // socket event update client dares
+          // socket event update new game dares
+          daresModal.close();
+        }}>Save</Button
+      >
+    </div>
   </div>
 </Modal>
 <Modal
@@ -1498,8 +1532,15 @@
 
   footer {
     grid-row: 3/4;
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    & ul {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+    }
+    & button {
+      background-color: inherit;
+      border: 1px solid var(--accent-color);
+      box-shadow: 0px 0px 20px 0px var(--accent-color) inset;
+    }
   }
 
   .inactive {
@@ -1523,11 +1564,54 @@
   .new {
     outline: 1px solid var(--pop-color);
   }
-  .dares li {
+  .solo-dare,
+  .dares-box > li {
     margin-block-start: 1rem;
     padding: 1rem;
     border-radius: calc(var(--border-radius-small) + 0.5rem);
     border: 1px solid var(--accent-color);
     box-shadow: 0px 0px 20px 0px var(--accent-color) inset;
+  }
+
+  .dares-modal section {
+    margin-block-end: 1.25rem;
+    margin-block-start: 0.75rem;
+  }
+  .new-dares-wrapper,
+  .all-dares,
+  .client-dares-wrapper {
+    display: grid;
+    border: 1px solid var(--accent-color);
+    border-radius: calc(var(--border-radius-small) + 0.5rem);
+    padding-inline: 1rem;
+    padding-block-end: 1rem;
+    margin-block-start: 0.75rem;
+  }
+  .all-dares {
+    max-height: 50vh;
+    overflow-y: scroll;
+  }
+  .db-dares {
+    margin-block-start: 1.25rem;
+  }
+  .client-dares-wrapper {
+    display: grid;
+    padding-block-start: 1rem;
+    row-gap: 1rem;
+  }
+  .new-dares :global(.new-button) {
+    justify-self: start;
+  }
+  .new-dares :global(.new-dares-btn) {
+    justify-self: end;
+    margin-block-start: 0.75rem;
+  }
+
+  .modal-buttons {
+    display: flex;
+    justify-content: flex-end;
+    margin-block-start: 1.5rem;
+    row-gap: 0.75rem;
+    column-gap: 0.5rem;
   }
 </style>
