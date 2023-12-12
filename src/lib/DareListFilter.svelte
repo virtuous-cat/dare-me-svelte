@@ -174,6 +174,7 @@
           schema={z.string()}
           label="Search:"
           name="search"
+          hideWarnings
         />
       </div>
       {#if search}

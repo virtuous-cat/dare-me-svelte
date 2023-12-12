@@ -8,6 +8,7 @@
   export let disabled: boolean = false;
   export let schema: z.KeySchema | undefined = undefined;
   export let warnings = [""];
+  export let hideWarnings: boolean = false;
   function checkValue() {
     if (!schema) {
       return;
@@ -43,7 +44,7 @@
       on:keydown
     />
   </div>
-  <div class="warnings">
+  <div class={hideWarnings && !warnings[0] ? "warnings hidden" : "warnings"}>
     {#each warnings as warning}
       <small class="alert">{warning}</small>
     {/each}
@@ -56,6 +57,10 @@
     flex-wrap: wrap;
     gap: 0.5rem;
     align-items: center;
+    max-width: 100%;
+  }
+  .input {
+    max-width: 100%;
   }
   label {
     font-weight: 700;
@@ -70,11 +75,15 @@
     flex-direction: column;
     min-height: 1lh;
   }
+  .hidden {
+    display: none;
+  }
   small {
     margin-block-end: 0.25rem;
   }
   input {
+    width: min(224px, 100vw - 60px);
     max-width: 100%;
-    min-width: 30px;
+    min-width: 50px;
   }
 </style>
