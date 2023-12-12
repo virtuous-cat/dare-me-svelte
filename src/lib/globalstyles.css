@@ -88,8 +88,8 @@ button {
   --accent-color: hsl(345, 80%, 48%);
   --pop-color: #9ceaf8;
   --unselected-opacity: 0.8;
-  --border-radius-large: 1.75rem;
-  --border-radius-small: 0.5rem;
+  --border-radius-large: 28px;
+  --border-radius-small: 8px;
 }
 
 /* Typography */

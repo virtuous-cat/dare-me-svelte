@@ -12,35 +12,42 @@
     if (!schema) {
       return;
     }
+    console.log("checkValue value", value);
     const parsedValue = schema.safeParse(value);
-    warnings = parsedValue.success ? [""] : parsedValue.error.format()._errors;
+    warnings = parsedValue.success
+      ? [""]
+      : !value
+        ? [`${label ?? ariaLabel}${label || ariaLabel ? " is " : ""}required`]
+        : parsedValue.error.format()._errors;
   }
 </script>
 
-<div class="flex">
-  {#if label}
-    <label for="input">{label}</label>
-  {/if}
-  <input
-    id="input"
-    class:label
-    {name}
-    type="text"
-    bind:value
-    {disabled}
-    aria-label={ariaLabel}
-    on:input={() => {
-      if (warnings[0]) {
-        checkValue();
-      }
-    }}
-    on:keydown
-  />
-</div>
-<div class="warnings">
-  {#each warnings as warning}
-    <small class="alert">{warning}</small>
-  {/each}
+<div class="input">
+  <div class="flex">
+    {#if label}
+      <label for="input">{label}</label>
+    {/if}
+    <input
+      id="input"
+      class:label
+      {name}
+      type="text"
+      bind:value
+      {disabled}
+      aria-label={ariaLabel}
+      on:input={() => {
+        if (warnings[0]) {
+          checkValue();
+        }
+      }}
+      on:keydown
+    />
+  </div>
+  <div class="warnings">
+    {#each warnings as warning}
+      <small class="alert">{warning}</small>
+    {/each}
+  </div>
 </div>
 
 <style>
@@ -61,6 +68,7 @@
   .warnings {
     display: flex;
     flex-direction: column;
+    min-height: 1lh;
   }
   small {
     margin-block-end: 0.25rem;

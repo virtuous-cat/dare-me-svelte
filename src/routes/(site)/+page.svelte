@@ -111,7 +111,10 @@
       const parsedCode = GameCodeSchema.safeParse(gameCode);
       if (!parsedCode.success) {
         cancel();
-        codeErrors = parsedCode.error.format()._errors;
+        codeErrors =
+          gameCode.length !== 4
+            ? ["Game code must contain 4 characters"]
+            : parsedCode.error.format()._errors;
         finding = false;
         return;
       }
@@ -141,9 +144,13 @@
       warnings={codeErrors}
     />
     {#if form?.findGameErrors}
-      {#each form.findGameErrors._errors as errorMessage}
-        <p class="alert">{errorMessage}</p>
-      {/each}
+      {#if gameCode.length !== 4}
+        <p class="alert">Game code must contain 4 characters.</p>
+      {:else}
+        {#each form.findGameErrors._errors as errorMessage}
+          <p class="alert">{errorMessage}</p>
+        {/each}
+      {/if}
     {/if}
     <Button
       disabled={generating || finding || creating || joining}
@@ -169,13 +176,15 @@
       creating = true;
       if (!parsedName.success) {
         cancel();
-        nameErrors = parsedName.error.format()._errors;
+        nameErrors = !playerName
+          ? ["Please enter a name"]
+          : parsedName.error.format()._errors;
         creating = false;
         return;
       }
       if (!categories.length) {
         cancel();
-        categoryError = "Please select at least one category.";
+        categoryError = "Please select at least one category";
         creating = false;
         return;
       }
@@ -360,45 +369,49 @@
     </div>
   </form>
 </Modal>
-<Modal bind:modal={join}>
-  <TextInput
-    name="playerName"
-    label="Name:"
-    schema={PlayerNameSchema}
-    bind:value={playerName}
-    disabled={generating || finding || creating || joining}
-    warnings={nameErrors}
-  />
-  <div class="button-wrapper">
-    <Button
-      on:click={(e) => {
-        join.close();
-      }}
-      disabled={generating || finding || creating || joining}>Cancel</Button
-    >
-    <Button
+<Modal bind:modal={join} className="join-modal">
+  <div class="join">
+    <TextInput
+      name="playerName"
+      label="Name:"
+      schema={PlayerNameSchema}
+      bind:value={playerName}
       disabled={generating || finding || creating || joining}
-      on:click={() => {
-        joining = true;
-        if (!parsedName.success) {
-          nameErrors = parsedName.error.format()._errors;
-          joining = false;
-          return;
-        }
-        const playerId = crypto.randomUUID();
-        if (!playerId) {
-          alert = "Error launching game, please try again";
-          joining = false;
+      warnings={nameErrors}
+    />
+    <div class="button-wrapper">
+      <Button
+        on:click={(e) => {
           join.close();
-          return;
-        }
-        sessionStorage.setItem("playerId", playerId);
-        sessionStorage.setItem("playerName", parsedName.data);
-        goto(`/games/${sessionStorage.getItem("gameCode")}`);
-      }}
-      loading={joining}
-      >Launch Game
-    </Button>
+        }}
+        disabled={generating || finding || creating || joining}>Cancel</Button
+      >
+      <Button
+        disabled={generating || finding || creating || joining}
+        on:click={() => {
+          joining = true;
+          if (!parsedName.success) {
+            nameErrors = !playerName
+              ? ["Please enter a name"]
+              : parsedName.error.format()._errors;
+            joining = false;
+            return;
+          }
+          const playerId = crypto.randomUUID();
+          if (!playerId) {
+            alert = "Error launching game, please try again";
+            joining = false;
+            join.close();
+            return;
+          }
+          sessionStorage.setItem("playerId", playerId);
+          sessionStorage.setItem("playerName", parsedName.data);
+          goto(`/games/${sessionStorage.getItem("gameCode")}`);
+        }}
+        loading={joining}
+        >Launch Game
+      </Button>
+    </div>
   </div>
 </Modal>
 
@@ -449,15 +462,15 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    & > * {
-      margin-block-end: 0.5rem;
-    }
+  }
+
+  .find-game :global(.flex) {
+    justify-content: center;
   }
 
   .create {
     display: grid;
-    gap: 1.25rem;
-    margin-block-start: 1rem;
+    gap: 20px;
   }
 
   .settings {
@@ -489,6 +502,15 @@
     @media (min-width: 570px) {
       margin-block-start: 0.75rem;
     }
+  }
+
+  :global(dialog.join-modal) {
+    max-width: 400px;
+  }
+
+  .join {
+    display: grid;
+    grid-template-rows: auto auto;
   }
 
   .button-wrapper {
