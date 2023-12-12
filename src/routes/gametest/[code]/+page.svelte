@@ -752,160 +752,164 @@
     <section class="db-dares">
       <h3>All Dares</h3>
       <div class="all-dares">
-        <DareListFilter bind:filtered {dares} showFilters={false} />
-        <ul id="dare-list" class="dares-box">
-          {#each $filteredDares as filteredDare (filteredDare.dare.dareId)}
-            <li
-              class={markNewIds.includes(filteredDare.dare.dareId) ? "new" : ""}
-            >
-              <Dare
-                dare={filteredDare.dare}
-                {loggedIn}
-                expand={filtered ||
-                  filteredDare.dare.children.some((variant) =>
-                    markNewIds.includes(variant.dareId)
-                  )}
-                {markNewIds}
-                withDetails
-                withVariants
+        <div class="scroll">
+          <DareListFilter bind:filtered {dares} showFilters={false} />
+          <ul id="dare-list" class="dares-box">
+            {#each $filteredDares as filteredDare (filteredDare.dare.dareId)}
+              <li
+                class={markNewIds.includes(filteredDare.dare.dareId)
+                  ? "new"
+                  : ""}
               >
-                <svelte:fragment slot="buttons">
-                  <Button
-                    on:click={() => {
-                      daresToAdd = [
-                        ...daresToAdd,
-                        {
-                          saved: false,
-                          saving: false,
-                          removed: false,
-                          errors: [],
-                          dareToAddId: nanoid(),
-                          parentDare: filteredDare.dare,
-                          replaceParent: false,
-                        },
-                      ];
-                    }}>Add New Variant</Button
-                  >
-                  <Button
-                    on:click={() => {
-                      if (
-                        partneredDaresToSave.some(
-                          ({ dareId }) => dareId === filteredDare.dare.dareId
-                        )
-                      ) {
-                        partneredDaresToSave = partneredDaresToSave.filter(
-                          ({ dareId }) => dareId !== filteredDare.dare.dareId
-                        );
-                        return;
-                      }
-                      if (
-                        soloDaresToSave.some(
-                          ({ dareId }) => dareId === filteredDare.dare.dareId
-                        )
-                      ) {
-                        soloDaresToSave = soloDaresToSave.filter(
-                          ({ dareId }) => dareId !== filteredDare.dare.dareId
-                        );
-                        return;
-                      }
-                      if (filteredDare.dare.partnered) {
-                        partneredDaresToSave = [
-                          ...partneredDaresToSave,
-                          filteredDare.dare,
+                <Dare
+                  dare={filteredDare.dare}
+                  {loggedIn}
+                  expand={filtered ||
+                    filteredDare.dare.children.some((variant) =>
+                      markNewIds.includes(variant.dareId)
+                    )}
+                  {markNewIds}
+                  withDetails
+                  withVariants
+                >
+                  <svelte:fragment slot="buttons">
+                    <Button
+                      on:click={() => {
+                        daresToAdd = [
+                          ...daresToAdd,
+                          {
+                            saved: false,
+                            saving: false,
+                            removed: false,
+                            errors: [],
+                            dareToAddId: nanoid(),
+                            parentDare: filteredDare.dare,
+                            replaceParent: false,
+                          },
                         ];
-                      } else {
-                        soloDaresToSave = [
-                          ...soloDaresToSave,
-                          filteredDare.dare,
-                        ];
-                      }
-                    }}
-                    >{partneredDaresToSave.some(
-                      ({ dareId }) => dareId === filteredDare.dare.dareId
-                    ) ||
-                    soloDaresToSave.some(
-                      ({ dareId }) => dareId === filteredDare.dare.dareId
-                    )
-                      ? "Selected!"
-                      : "Select"}</Button
-                  >
-                </svelte:fragment>
-                <svelte:fragment slot="variant-buttons" let:variantId>
-                  <Button
-                    on:click={() => {
-                      const variant = filteredDare.dare.children.find(
-                        (child) => child.dareId === variantId
-                      );
-                      if (!variant) {
-                        return;
-                      }
-                      daresToAdd = [
-                        ...daresToAdd,
-                        {
-                          saved: false,
-                          saving: false,
-                          removed: false,
-                          errors: [],
-                          dareToAddId: nanoid(),
-                          parentDare: { ...variant, children: [] },
-                          replaceParent: false,
-                        },
-                      ];
-                    }}>Add New Variant</Button
-                  >
-                  <Button
-                    on:click={() => {
-                      if (
-                        partneredDaresToSave.some(
-                          ({ dareId }) => dareId === variantId
-                        )
-                      ) {
-                        partneredDaresToSave = partneredDaresToSave.filter(
-                          ({ dareId }) => dareId !== variantId
-                        );
-                        return;
-                      }
-                      if (
-                        soloDaresToSave.some(
-                          ({ dareId }) => dareId === variantId
-                        )
-                      ) {
-                        soloDaresToSave = soloDaresToSave.filter(
-                          ({ dareId }) => dareId !== variantId
-                        );
-                        return;
-                      }
-                      const dare = filteredDare.dare.children.find(
-                        ({ dareId }) => dareId === variantId
-                      );
-                      if (dare) {
-                        if (dare.partnered) {
+                      }}>Add New Variant</Button
+                    >
+                    <Button
+                      on:click={() => {
+                        if (
+                          partneredDaresToSave.some(
+                            ({ dareId }) => dareId === filteredDare.dare.dareId
+                          )
+                        ) {
+                          partneredDaresToSave = partneredDaresToSave.filter(
+                            ({ dareId }) => dareId !== filteredDare.dare.dareId
+                          );
+                          return;
+                        }
+                        if (
+                          soloDaresToSave.some(
+                            ({ dareId }) => dareId === filteredDare.dare.dareId
+                          )
+                        ) {
+                          soloDaresToSave = soloDaresToSave.filter(
+                            ({ dareId }) => dareId !== filteredDare.dare.dareId
+                          );
+                          return;
+                        }
+                        if (filteredDare.dare.partnered) {
                           partneredDaresToSave = [
                             ...partneredDaresToSave,
-                            { ...dare, children: [] },
+                            filteredDare.dare,
                           ];
                         } else {
                           soloDaresToSave = [
                             ...soloDaresToSave,
-                            { ...dare, children: [] },
+                            filteredDare.dare,
                           ];
                         }
-                      }
-                    }}
-                    >{partneredDaresToSave.some(
-                      ({ dareId }) => dareId === variantId
-                    ) ||
-                    soloDaresToSave.some(({ dareId }) => dareId === variantId)
-                      ? "Selected!"
-                      : "Select"}</Button
-                  >
-                </svelte:fragment>
-              </Dare>
-            </li>
-          {:else}
-            <li>No Dares Found</li>
-          {/each}
-        </ul>
+                      }}
+                      >{partneredDaresToSave.some(
+                        ({ dareId }) => dareId === filteredDare.dare.dareId
+                      ) ||
+                      soloDaresToSave.some(
+                        ({ dareId }) => dareId === filteredDare.dare.dareId
+                      )
+                        ? "Selected!"
+                        : "Select"}</Button
+                    >
+                  </svelte:fragment>
+                  <svelte:fragment slot="variant-buttons" let:variantId>
+                    <Button
+                      on:click={() => {
+                        const variant = filteredDare.dare.children.find(
+                          (child) => child.dareId === variantId
+                        );
+                        if (!variant) {
+                          return;
+                        }
+                        daresToAdd = [
+                          ...daresToAdd,
+                          {
+                            saved: false,
+                            saving: false,
+                            removed: false,
+                            errors: [],
+                            dareToAddId: nanoid(),
+                            parentDare: { ...variant, children: [] },
+                            replaceParent: false,
+                          },
+                        ];
+                      }}>Add New Variant</Button
+                    >
+                    <Button
+                      on:click={() => {
+                        if (
+                          partneredDaresToSave.some(
+                            ({ dareId }) => dareId === variantId
+                          )
+                        ) {
+                          partneredDaresToSave = partneredDaresToSave.filter(
+                            ({ dareId }) => dareId !== variantId
+                          );
+                          return;
+                        }
+                        if (
+                          soloDaresToSave.some(
+                            ({ dareId }) => dareId === variantId
+                          )
+                        ) {
+                          soloDaresToSave = soloDaresToSave.filter(
+                            ({ dareId }) => dareId !== variantId
+                          );
+                          return;
+                        }
+                        const dare = filteredDare.dare.children.find(
+                          ({ dareId }) => dareId === variantId
+                        );
+                        if (dare) {
+                          if (dare.partnered) {
+                            partneredDaresToSave = [
+                              ...partneredDaresToSave,
+                              { ...dare, children: [] },
+                            ];
+                          } else {
+                            soloDaresToSave = [
+                              ...soloDaresToSave,
+                              { ...dare, children: [] },
+                            ];
+                          }
+                        }
+                      }}
+                      >{partneredDaresToSave.some(
+                        ({ dareId }) => dareId === variantId
+                      ) ||
+                      soloDaresToSave.some(({ dareId }) => dareId === variantId)
+                        ? "Selected!"
+                        : "Select"}</Button
+                    >
+                  </svelte:fragment>
+                </Dare>
+              </li>
+            {:else}
+              <li>No Dares Found</li>
+            {/each}
+          </ul>
+        </div>
       </div>
     </section>
     <p>Or</p>
@@ -1589,7 +1593,14 @@
   }
   .all-dares {
     max-height: 50vh;
-    overflow-y: scroll;
+    overflow: hidden;
+    @media (max-width: 350px) {
+      padding-inline: 0;
+    }
+  }
+  .scroll {
+    overflow: auto;
+    max-height: inherit;
   }
   .db-dares {
     margin-block-start: 1.25rem;
