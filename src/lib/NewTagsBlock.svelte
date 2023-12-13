@@ -33,6 +33,7 @@
     bind:value={newTag}
     schema={TagSchema.shape.name}
     ariaLabel="Add new tag"
+    hideWarnings
     warnings={tagWarnings}
     on:keydown={(e) => {
       if (e.key === "Enter") {
