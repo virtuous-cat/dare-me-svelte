@@ -76,8 +76,8 @@
       parentId: parentDare?.parentId
         ? parentDare.parentId
         : parentDare && isNewVariant
-        ? parentDare.dareId
-        : null,
+          ? parentDare.dareId
+          : null,
     });
   }
 
@@ -171,10 +171,13 @@
     <Button
       disabled={saving}
       on:click={() => {
-        if (window.confirm("Discard changes to this dare?")) {
-          newDares.delete(dareToAddId);
-          dispatch("discard");
+        if ((!parentDare && newDareText.length > 0) || parentDare) {
+          if (!window.confirm("Discard changes to this dare?")) {
+            return;
+          }
         }
+        newDares.delete(dareToAddId);
+        dispatch("discard");
       }}>Cancel</Button
     >
     <Button
@@ -200,8 +203,8 @@
             parentId: parentDare?.parentId
               ? parentDare.parentId
               : parentDare && isNewVariant
-              ? parentDare.dareId
-              : null,
+                ? parentDare.dareId
+                : null,
           },
         });
       }}>Save</Button

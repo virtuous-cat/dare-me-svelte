@@ -39,6 +39,10 @@
       box-shadow: -2px -2px 10px 1px hsl(345 80% 48%) inset;
     }
   }
+  .inverted {
+    background-color: hsl(266.9, 87.5%, 22%);
+    color: var(--text-color);
+  }
   button:disabled {
     background-color: hsl(180, 25%, 58%);
   }

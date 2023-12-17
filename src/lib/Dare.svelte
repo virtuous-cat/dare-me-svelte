@@ -198,14 +198,16 @@
   .grid {
     display: grid;
     grid-template-columns: 1fr auto;
-    grid-template-rows: repeat(2, auto);
+    grid-template-rows: repeat(3, auto);
     grid-template-areas:
       "text text"
-      "inner buttons";
+      "inner inner"
+      "buttons buttons";
     gap: 0.75rem;
-    @media (min-width: 500px) {
+    @media (min-width: 700px) {
+      grid-template-rows: repeat(2, auto);
       grid-template-areas:
-        "text buttons"
+        "text text"
         "inner buttons";
     }
   }

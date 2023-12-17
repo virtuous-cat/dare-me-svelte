@@ -82,7 +82,7 @@
     margin-block-end: 0.25rem;
   }
   input {
-    width: min(224px, 100vw - 60px);
+    width: min(224px, 100cqi);
     max-width: 100%;
     min-width: 50px;
   }

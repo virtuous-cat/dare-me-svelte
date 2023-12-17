@@ -439,6 +439,9 @@
     align-items: flex-start;
     min-height: 34px;
   }
+  .search {
+    container: search / inline-size;
+  }
   .tag-area {
     margin-block-start: 0;
     @media (min-width: 700px) {
