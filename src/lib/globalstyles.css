@@ -89,7 +89,10 @@ button {
   --pop-color: #9ceaf8;
   --unselected-opacity: 0.8;
   --border-radius-large: 28px;
+  --border-radius-med: 16px;
   --border-radius-small: 8px;
+  --glow-color: var(--accent-color);
+  --inner-glow: 0px 0px 20px 0px var(--glow-color) inset;
 }
 
 /* Typography */

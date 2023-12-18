@@ -31,6 +31,7 @@
   const tagFilter = getContext<Writable<string[]>>("filteredTags");
 
   export let showFilters = true;
+  export let autofocusSearch = false;
   let categoryFilter: Category[] = [];
   let interactionFilter: Interaction[] = [];
   let statusFilter: DareStatus[] = [];
@@ -175,6 +176,7 @@
           label="Search:"
           name="search"
           hideWarnings
+          autofocus={autofocusSearch}
         />
       </div>
       {#if search}
@@ -418,7 +420,7 @@
   .tag-area {
     margin-block-start: 0.75rem;
     border: 1px solid var(--accent-color);
-    border-radius: calc(var(--border-radius-small) + 0.5rem);
+    border-radius: var(--border-radius-med);
     padding-inline: 1rem;
     padding-block-end: 1rem;
     padding-block-start: 0.75rem;

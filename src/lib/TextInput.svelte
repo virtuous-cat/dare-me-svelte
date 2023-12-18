@@ -9,6 +9,7 @@
   export let schema: z.KeySchema | undefined = undefined;
   export let warnings = [""];
   export let hideWarnings: boolean = false;
+  export let autofocus = false;
   function checkValue() {
     if (!schema) {
       return;
@@ -28,8 +29,10 @@
     {#if label}
       <label for="input">{label}</label>
     {/if}
+    <!-- svelte-ignore a11y-autofocus -->
     <input
       id="input"
+      {autofocus}
       class:label
       {name}
       type="text"

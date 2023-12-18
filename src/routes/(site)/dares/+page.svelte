@@ -602,7 +602,7 @@
   .new-dares-wrapper {
     display: grid;
     border: 1px solid var(--accent-color);
-    border-radius: calc(var(--border-radius-small) + 0.5rem);
+    border-radius: var(--border-radius-med);
     padding-inline: 1rem;
     padding-block-end: 1rem;
     margin-block-start: 0.75rem;
@@ -623,9 +623,9 @@
     gap: 0.5rem;
     margin-block-start: 1rem;
     padding: 1rem;
-    border-radius: calc(var(--border-radius-small) + 0.5rem);
+    border-radius: var(--border-radius-med);
     border: 1px solid var(--accent-color);
-    box-shadow: 0px 0px 20px 0px var(--accent-color) inset;
+    box-shadow: var(--inner-glow);
   }
   .dare-block {
     flex-grow: 1;

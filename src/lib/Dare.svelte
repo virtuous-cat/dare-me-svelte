@@ -192,7 +192,7 @@
     padding: 1rem;
     border-radius: var(--border-radius-small);
     border: 1px solid var(--accent-color);
-    box-shadow: 0px 0px 20px 0px var(--accent-color) inset;
+    box-shadow: var(--inner-glow);
   }
 
   .grid {

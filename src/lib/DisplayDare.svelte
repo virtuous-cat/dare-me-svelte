@@ -15,10 +15,10 @@
 <svelte:window bind:innerWidth={width} />
 
 <div class="wrapper">
-  <div class="grid">
+  <div class="grid" class:withDetails>
     <p class="text">{dare?.dareText}</p>
-    <div class="inner">
-      {#if withDetails}
+    {#if withDetails}
+      <div class="inner">
         {#if !hidden || width >= 700}
           <div class="details" transition:slide>
             <p><strong>{dare?.partnered ? "Partnered" : "Solo"}</strong></p>
@@ -41,8 +41,8 @@
             >
           </div>
         </div>
-      {/if}
-    </div>
+      </div>
+    {/if}
     <div class="buttons"><slot name="buttons" /></div>
   </div>
 </div>
@@ -66,15 +66,30 @@
 
   .wrapper {
     flex-grow: 1;
+    border: 2px solid var(--background-color);
+    border-radius: var(--border-radius-med);
+    padding: 8px;
   }
   .grid {
     display: grid;
+    column-gap: 4px;
+    grid-template-columns: auto;
+    grid-template-rows: repeat(2, auto);
+    grid-template-areas:
+      "text"
+      "buttons";
+    @media (min-width: 600px) {
+      grid-template-columns: 1fr auto;
+      grid-template-rows: auto;
+      grid-template-areas: "text buttons";
+    }
+  }
+  .grid .withDetails {
     grid-template-columns: 1fr auto;
     grid-template-rows: repeat(2, auto);
     grid-template-areas:
       "text text"
       "inner buttons";
-    gap: 0.75rem;
     @media (min-width: 500px) {
       grid-template-areas:
         "text buttons"
@@ -83,9 +98,11 @@
   }
   .inner {
     grid-area: inner;
+    margin-block-start: 12px;
   }
   .text {
     grid-area: text;
+    align-self: center;
   }
   .show {
     display: flex;

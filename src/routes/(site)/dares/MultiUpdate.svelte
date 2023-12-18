@@ -158,8 +158,8 @@
         className={multiUpdateSuccess
           ? "success"
           : multiUpdateError
-          ? "error"
-          : ""}>Update Selected</Button
+            ? "error"
+            : ""}>Update Selected</Button
       >
     </div>
   </form>
@@ -169,7 +169,7 @@
   .controls {
     margin-block-start: 1rem;
     border: 1px solid var(--accent-color);
-    border-radius: calc(var(--border-radius-small) + 0.5rem);
+    border-radius: var(--border-radius-med);
     padding-inline: 1rem;
     padding-block-end: 1rem;
     padding-block-start: 0.75rem;

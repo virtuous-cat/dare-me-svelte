@@ -11,7 +11,13 @@
   } from "$lib/game.types";
   import type { DareeTurnStage, MobileTab, ServerChat } from "$lib/game.types";
   import { goto, invalidateAll } from "$app/navigation";
-  import { getContext, onMount, setContext } from "svelte";
+  import {
+    afterUpdate,
+    beforeUpdate,
+    getContext,
+    onMount,
+    setContext,
+  } from "svelte";
   import Button from "$lib/Button.svelte";
   import { page } from "$app/stores";
   import {
@@ -222,7 +228,7 @@
     timer: null,
   };
   let showCurrentDare: boolean = true;
-  let darerTurnStage: DarerTurnStage = darerTurnStages.SELECT;
+  let darerTurnStage: DarerTurnStage = darerTurnStages.SENT;
   let spinning: boolean = false;
   let dareeDares: GameDare[] = [
     {
@@ -282,6 +288,33 @@
   let dareeTurnStage: DareeTurnStage = dareeTurnStages.CONFIRM;
   let activeTab: MobileTab = mobileTabs.PLAYERS;
   let newChat: boolean = false;
+
+  let gamelogScroll: HTMLUListElement;
+  let chatlogScroll: HTMLUListElement;
+  let gamelogAutoscroll = false;
+  let chatlogAutoscroll = false;
+
+  beforeUpdate(() => {
+    if (gamelogScroll) {
+      const scrollableDistance =
+        gamelogScroll.scrollHeight - gamelogScroll.offsetHeight;
+      gamelogAutoscroll = gamelogScroll.scrollTop > scrollableDistance - 20;
+    }
+    if (chatlogScroll) {
+      const scrollableDistance =
+        chatlogScroll.scrollHeight - chatlogScroll.offsetHeight;
+      chatlogAutoscroll = chatlogScroll.scrollTop > scrollableDistance - 20;
+    }
+  });
+
+  afterUpdate(() => {
+    if (gamelogAutoscroll) {
+      gamelogScroll.scrollTo(0, gamelogScroll.scrollHeight);
+    }
+    if (chatlogAutoscroll) {
+      chatlogScroll.scrollTo(0, chatlogScroll.scrollHeight);
+    }
+  });
 
   let daresModal: HTMLDialogElement;
   let interruptModal: HTMLDialogElement;
@@ -426,245 +459,262 @@
         role={!wide ? "tabpanel" : undefined}
         aria-labelledby={!wide ? "gamelog-tab" : undefined}
       >
-        {#if wide}
-          <header>
-            <h2>Game Log</h2>
-          </header>
-        {/if}
-        <div class="gamelog-list-container">
-          <ul class="gamelog-list">
-            {#each gameLog as { text, dareText }}
-              <li>
-                <p>{text}</p>
-                {#if dareText}
-                  <p>{dareText}</p>
-                {/if}
-              </li>
-            {/each}
-          </ul>
-        </div>
-        <div class="activity">
-          {#if clientIsDarer && darerTurnStage === darerTurnStages.SPIN}
-            <div>
-              <p>It's your turn to select a dare for someone!</p>
-              <p>Spin to find out who you'll be daring:</p>
-            </div>
-            {#if spinning}
-              <!-- TODO: animation -->
-              <p class="center">Spinning...</p>
-            {:else if daree}
-              <p class="daree center">
-                <strong>{players.get(daree)?.playerName}</strong>
-              </p>
-            {:else}
-              <Button
-                className="inverted center"
-                on:click={() => {
-                  spinning = true;
-                  setTimeout(() => {
-                    spinning = false;
-                  }, 2000);
-                }}>Spin</Button
-              >
-            {/if}
-          {:else if clientIsDarer && darerTurnStage === darerTurnStages.SELECT}
-            <div>
+        <div class="gamelog-scroll">
+          {#if wide}
+            <header>
+              <h2>Game Log</h2>
+            </header>
+          {/if}
+          <div class="gamelog-list-container">
+            <ul class="gamelog-list" bind:this={gamelogScroll}>
+              {#each gameLog as { text, dareText }}
+                <li>
+                  <p>{text}</p>
+                  {#if dareText}
+                    <p>{dareText}</p>
+                  {/if}
+                </li>
+              {/each}
+            </ul>
+          </div>
+          <div class="activity">
+            {#if clientIsDarer && darerTurnStage === darerTurnStages.SPIN}
+              <div>
+                <p>It's your turn to select a dare for someone!</p>
+                <p>Spin to find out who you'll be daring:</p>
+              </div>
+              {#if spinning}
+                <!-- TODO: animation -->
+                <p class="center">Spinning...</p>
+              {:else if daree}
+                <p class="daree center">
+                  <strong>{players.get(daree)?.playerName}</strong>
+                </p>
+              {:else}
+                <Button
+                  className="inverted center"
+                  on:click={() => {
+                    spinning = true;
+                    setTimeout(() => {
+                      spinning = false;
+                    }, 2000);
+                  }}>Spin</Button
+                >
+              {/if}
+            {:else if clientIsDarer && darerTurnStage === darerTurnStages.SELECT}
+              <div>
+                <p>
+                  Choose a Dare for {players.get(daree)?.playerName} to preform.
+                </p>
+                <p>
+                  <small
+                    >If you choose a <strong>Partnered</strong> dare, {players.get(
+                      daree
+                    )?.playerName} will have the opportunity to decline and either
+                    ask you to choose a <strong>Solo</strong> dare, or counteroffer.</small
+                  >
+                </p>
+              </div>
+              {#if dareePartneredDares.length}
+                <h3>{players.get(daree)?.playerName}'s Partnered Dares</h3>
+                <ul>
+                  {#each dareePartneredDares as dare (dare.dareId)}
+                    <li>
+                      <DisplayDare {dare}
+                        ><svelte:fragment slot="buttons">
+                          <Button className="inverted">Select</Button>
+                        </svelte:fragment></DisplayDare
+                      >
+                    </li>
+                  {/each}
+                </ul>
+              {/if}
+              <h3>{players.get(daree)?.playerName}'s Solo Dares</h3>
+              <ul>
+                {#each dareeSoloDares as dare (dare.dareId)}
+                  <li>
+                    <DisplayDare {dare}
+                      ><svelte:fragment slot="buttons">
+                        <Button className="inverted">Select</Button>
+                      </svelte:fragment></DisplayDare
+                    >
+                  </li>
+                {/each}
+              </ul>
+            {:else if clientIsDarer && darerTurnStage === darerTurnStages.SENT}
               <p>
-                Choose a Dare for {players.get(daree)?.playerName} to preform.
+                {players.get(daree)?.playerName} is considering the dare you selected:
+              </p>
+              <DisplayDare dare={currentDare} />
+            {:else if clientIsDarer && darerTurnStage === darerTurnStages.ACCEPTED}
+              <p>
+                {players.get(daree)?.playerName} agreed to the dare you selected!
+              </p>
+              <DisplayDare dare={currentDare} />
+            {:else if clientIsDarer && darerTurnStage === darerTurnStages.DECLINED}
+              <p>
+                {players.get(daree)?.playerName} declined the dare you selected.
+                Please choose one of their <strong>Solo</strong> dares:
+              </p>
+              <h3>{players.get(daree)?.playerName}'s Solo Dares</h3>
+              <ul>
+                {#each dareeSoloDares as dare (dare.dareId)}
+                  <li>
+                    <DisplayDare {dare}
+                      ><svelte:fragment slot="buttons">
+                        <Button className="inverted">Select</Button>
+                      </svelte:fragment></DisplayDare
+                    >
+                  </li>
+                {/each}
+              </ul>
+            {:else if clientIsDarer && darerTurnStage === darerTurnStages.COUNTERED}
+              <p>
+                {players.get(daree)?.playerName} declined the dare you selected,
+                but offered to preform this dare instead:
+              </p>
+              <DisplayDare dare={currentDare} />
+              <p>
+                <Button className="inverted">Accept the Counteroffer</Button> Or
+                Choose one of {players.get(daree)?.playerName}'s
+                <strong>Solo</strong> dares:
+              </p>
+              <h3>{players.get(daree)?.playerName}'s Solo Dares</h3>
+              <ul>
+                {#each dareeSoloDares as dare (dare.dareId)}
+                  <li>
+                    <DisplayDare {dare}
+                      ><svelte:fragment slot="buttons">
+                        <Button className="inverted">Select</Button>
+                      </svelte:fragment></DisplayDare
+                    >
+                  </li>
+                {/each}
+              </ul>
+            {:else if clientIsDarer && darerTurnStage === darerTurnStages.END}
+              <p>You dared {players.get(daree)?.playerName} to:</p>
+              <p>{currentDare.dareText}</p>
+              <!-- {#if currentDare.timer}
+                  TODO build timer
+                {/if}  -->
+              <Button className="inverted">End Your Turn</Button>
+            {:else if clientIsDaree && dareeTurnStage === dareeTurnStages.CONFIRM}
+              <p>
+                {players.get(darer)?.playerName} has dared you to:
+              </p>
+              <DisplayDare dare={currentDare} />
+              <p>How do you want to respond?</p>
+              <Button className="inverted">Accept Dare</Button>
+
+              <p>
+                <Button className="inverted">Decline</Button> and have {players.get(
+                  darer
+                )?.playerName}
+                choose one of your <strong>Solo</strong> dares.
+              </p>
+              <p>
+                Or counteroffer, by selecting a different dare from either of
+                your <strong>Partnered</strong> dares.
               </p>
               <p>
                 <small
-                  >If you choose a <strong>Partnered</strong> dare, {players.get(
-                    daree
-                  )?.playerName} will have the opportunity to decline and ask you
-                  to choose a <strong>Solo</strong> dare, or counteroffer.</small
+                  >{players.get(darer)?.playerName} will have the opportunity to
+                  decline and choose one of your <strong>Solo</strong> dares instead.</small
                 >
               </p>
-            </div>
-            {#if dareePartneredDares.length}
-              <h3>{players.get(daree)?.playerName}'s Partnered Dares</h3>
-              <ul>
-                {#each dareePartneredDares as dare (dare.dareId)}
-                  <li>
-                    <DisplayDare {dare}
-                      ><svelte:fragment slot="buttons">
-                        <Button className="inverted">Select</Button>
-                      </svelte:fragment></DisplayDare
-                    >
-                  </li>
-                {/each}
-              </ul>
-            {/if}
-            <h3>{players.get(daree)?.playerName}'s Solo Dares</h3>
-            <ul>
-              {#each dareeSoloDares as dare (dare.dareId)}
-                <li>
-                  <DisplayDare {dare}
-                    ><svelte:fragment slot="buttons">
-                      <Button className="inverted">Select</Button>
-                    </svelte:fragment></DisplayDare
-                  >
-                </li>
-              {/each}
-            </ul>
-          {:else if clientIsDarer && darerTurnStage === darerTurnStages.SENT}
-            <p>
-              {players.get(daree)?.playerName} is considering the dare you selected.
-            </p>
-            <DisplayDare dare={currentDare} />
-          {:else if clientIsDarer && darerTurnStage === darerTurnStages.ACCEPTED}
-            <p>
-              {players.get(daree)?.playerName} agreed to the dare you selected!
-            </p>
-            <DisplayDare dare={currentDare} />
-          {:else if clientIsDarer && darerTurnStage === darerTurnStages.DECLINED}
-            <p>
-              {players.get(daree)?.playerName} declined the dare you selected. Please
-              choose one of their <strong>Solo</strong> dares:
-            </p>
-            <h3>{players.get(daree)?.playerName}'s Solo Dares</h3>
-            <ul>
-              {#each dareeSoloDares as dare (dare.dareId)}
-                <li>
-                  <DisplayDare {dare}
-                    ><svelte:fragment slot="buttons">
-                      <Button className="inverted">Select</Button>
-                    </svelte:fragment></DisplayDare
-                  >
-                </li>
-              {/each}
-            </ul>
-          {:else if clientIsDarer && darerTurnStage === darerTurnStages.COUNTERED}
-            <p>
-              {players.get(daree)?.playerName} declined the dare you selected, but
-              offered to preform this dare instead:
-            </p>
-            <DisplayDare dare={currentDare} />
-            <p>
-              <Button className="inverted">Accept the Counteroffer</Button> Or Choose
-              one of {players.get(daree)?.playerName}'s <strong>Solo</strong> dares:
-            </p>
-            <h3>{players.get(daree)?.playerName}'s Solo Dares</h3>
-            <ul>
-              {#each dareeSoloDares as dare (dare.dareId)}
-                <li>
-                  <DisplayDare {dare}
-                    ><svelte:fragment slot="buttons">
-                      <Button className="inverted">Select</Button>
-                    </svelte:fragment></DisplayDare
-                  >
-                </li>
-              {/each}
-            </ul>
-          {:else if clientIsDarer && darerTurnStage === darerTurnStages.END}
-            <p>You dared {players.get(daree)?.playerName} to:</p>
-            <p>{currentDare.dareText}</p>
-            <!-- {#if currentDare.timer}
-                  TODO build timer
-                {/if}  -->
-            <Button className="inverted">End Your Turn</Button>
-          {:else if clientIsDaree && dareeTurnStage === dareeTurnStages.CONFIRM}
-            <p>
-              {players.get(darer)?.playerName} has dared you to:
-            </p>
-            <DisplayDare dare={currentDare} />
-            <p>How do you want to respond?</p>
-            <Button className="inverted">Accept Dare</Button>
 
-            <p>
-              <Button className="inverted">Decline</Button> and have {players.get(
-                darer
-              )?.playerName}
-              choose one of your <strong>Solo</strong> dares.
-            </p>
-            <p>
-              Or counteroffer, by selecting a different dare from either of your <strong
-                >Partnered</strong
-              > dares.
-            </p>
-            <p>
-              <small
-                >{players.get(darer)?.playerName} will have the opportunity to decline
-                and choose one of your <strong>Solo</strong> dares instead.</small
-              >
-            </p>
-
-            {#if darerPartneredDares.length}
-              <h3>{players.get(darer)?.playerName}'s Partnered Dares</h3>
-              <ul>
-                {#each dareePartneredDares as dare (dare.dareId)}
-                  <li>
-                    <DisplayDare {dare}
-                      ><svelte:fragment slot="buttons">
-                        className="inverted"
-                        <Button>Select</Button>
-                      </svelte:fragment></DisplayDare
-                    >
-                  </li>
-                {/each}
-              </ul>
-            {/if}
-            {#if dareePartneredDares.length}
-              <h3>Your Partnered Dares</h3>
-              <ul>
-                {#each dareePartneredDares as dare (dare.dareId)}
-                  <li>
-                    <DisplayDare {dare}
-                      ><svelte:fragment slot="buttons">
-                        <Button className="inverted">Select</Button>
-                      </svelte:fragment></DisplayDare
-                    >
-                  </li>
-                {/each}
-              </ul>
-            {/if}
-          {:else if clientIsDaree && dareeTurnStage === dareeTurnStages.DECLINED}
-            <p>
-              {players.get(darer)?.playerName} is choosing one of your
-              <strong>Solo</strong> dares.
-            </p>
-          {:else if clientIsDaree && dareeTurnStage === dareeTurnStages.COUNTERED}
-            <p>
-              {players.get(darer)?.playerName} is considering your counteroffer.
-            </p>
-            <DisplayDare dare={currentDare} />
-          {:else if clientIsDaree && dareeTurnStage === dareeTurnStages.COUNTER_ACCEPTED}
-            <p>
-              {players.get(darer)?.playerName} accepted your counteroffer!
-            </p>
-            <DisplayDare dare={currentDare} />
-          {:else if clientIsDaree && dareeTurnStage === dareeTurnStages.COUNTER_DECLINED}
-            <p>
-              {players.get(daree)?.playerName} declined your counteroffer, and instead
-              dares you to:.
-            </p>
-            <DisplayDare dare={currentDare} />
-          {:else if clientIsDaree && dareeTurnStage === dareeTurnStages.END}
-            <p>{players.get(darer)?.playerName} dared you to:</p>
-            <p>{currentDare.dareText}</p>
-            <!-- {#if currentDare.timer}
+              {#if darerPartneredDares.length}
+                <h3>{players.get(darer)?.playerName}'s Partnered Dares</h3>
+                <ul>
+                  {#each dareePartneredDares as dare (dare.dareId)}
+                    <li>
+                      <DisplayDare {dare}
+                        ><svelte:fragment slot="buttons">
+                          className="inverted"
+                          <Button>Select</Button>
+                        </svelte:fragment></DisplayDare
+                      >
+                    </li>
+                  {/each}
+                </ul>
+              {/if}
+              {#if dareePartneredDares.length}
+                <h3>Your Partnered Dares</h3>
+                <ul>
+                  {#each dareePartneredDares as dare (dare.dareId)}
+                    <li>
+                      <DisplayDare {dare}
+                        ><svelte:fragment slot="buttons">
+                          <Button className="inverted">Select</Button>
+                        </svelte:fragment></DisplayDare
+                      >
+                    </li>
+                  {/each}
+                </ul>
+              {/if}
+            {:else if clientIsDaree && dareeTurnStage === dareeTurnStages.DECLINED}
+              <p>
+                {players.get(darer)?.playerName} is choosing one of your
+                <strong>Solo</strong> dares.
+              </p>
+            {:else if clientIsDaree && dareeTurnStage === dareeTurnStages.COUNTERED}
+              <p>
+                {players.get(darer)?.playerName} is considering your counteroffer.
+              </p>
+              <DisplayDare dare={currentDare} />
+            {:else if clientIsDaree && dareeTurnStage === dareeTurnStages.COUNTER_ACCEPTED}
+              <p>
+                {players.get(darer)?.playerName} accepted your counteroffer!
+              </p>
+              <DisplayDare dare={currentDare} />
+            {:else if clientIsDaree && dareeTurnStage === dareeTurnStages.COUNTER_DECLINED}
+              <p>
+                {players.get(daree)?.playerName} declined your counteroffer, and
+                instead dares you to:.
+              </p>
+              <DisplayDare dare={currentDare} />
+            {:else if clientIsDaree && dareeTurnStage === dareeTurnStages.END}
+              <p>{players.get(darer)?.playerName} dared you to:</p>
+              <p>{currentDare.dareText}</p>
+              <!-- {#if currentDare.timer}
                 TODO build timer
               {/if}  -->
-            <Button
-              className="inverted"
-              on:click={() => {
-                clientPreviousDare = currentDare;
-                daree = "";
-                darer = "";
-                dareeTurnStage = dareeTurnStages.KEEP_DARE;
-              }}>End Your Turn</Button
-            >
-          {:else if dareeTurnStage === dareeTurnStages.KEEP_DARE && clientPreviousDare}
-            <p>Would you like to keep this dare in your dare list?</p>
-            <DisplayDare dare={clientPreviousDare} />
-            <div>
               <Button
                 className="inverted"
                 on:click={() => {
-                  dareeTurnStage = dareeTurnStages.CONFIRM;
-                }}>Keep Dare</Button
+                  clientPreviousDare = currentDare;
+                  daree = "";
+                  darer = "";
+                  dareeTurnStage = dareeTurnStages.KEEP_DARE;
+                }}>End Your Turn</Button
               >
-              {#if !(!clientPreviousDare.partnered && clientSoloDares.length <= 2)}
+            {:else if dareeTurnStage === dareeTurnStages.KEEP_DARE && clientPreviousDare}
+              <p>Would you like to keep this dare in your dare list?</p>
+              <DisplayDare dare={clientPreviousDare} />
+              <div>
+                <Button
+                  className="inverted"
+                  on:click={() => {
+                    dareeTurnStage = dareeTurnStages.CONFIRM;
+                  }}>Keep Dare</Button
+                >
+                {#if !(!clientPreviousDare.partnered && clientSoloDares.length <= 2)}
+                  <Button
+                    className="inverted"
+                    on:click={() => {
+                      if (clientPreviousDare?.partnered) {
+                        clientPartneredDares = clientPartneredDares.filter(
+                          ({ dareId }) => dareId !== clientPreviousDare?.dareId
+                        );
+                      } else {
+                        clientSoloDares = clientSoloDares.filter(
+                          ({ dareId }) => dareId !== clientPreviousDare?.dareId
+                        );
+                      }
+                      dareeTurnStage = dareeTurnStages.CONFIRM;
+                    }}>Remove Dare</Button
+                  >
+                {/if}
                 <Button
                   className="inverted"
                   on:click={() => {
@@ -677,44 +727,29 @@
                         ({ dareId }) => dareId !== clientPreviousDare?.dareId
                       );
                     }
+                    activeTab = mobileTabs.DARES;
                     dareeTurnStage = dareeTurnStages.CONFIRM;
-                  }}>Remove Dare</Button
+                    if (!interrupted) {
+                      soloDaresToSave = [...clientSoloDares];
+                      partneredDaresToSave = [...clientPartneredDares];
+                    }
+                    interrupted = false;
+                    daresModal.showModal();
+                  }}>Replace Dare</Button
                 >
-              {/if}
-              <Button
-                className="inverted"
-                on:click={() => {
-                  if (clientPreviousDare?.partnered) {
-                    clientPartneredDares = clientPartneredDares.filter(
-                      ({ dareId }) => dareId !== clientPreviousDare?.dareId
-                    );
-                  } else {
-                    clientSoloDares = clientSoloDares.filter(
-                      ({ dareId }) => dareId !== clientPreviousDare?.dareId
-                    );
-                  }
-                  activeTab = mobileTabs.DARES;
-                  dareeTurnStage = dareeTurnStages.CONFIRM;
-                  if (!interrupted) {
-                    soloDaresToSave = [...clientSoloDares];
-                    partneredDaresToSave = [...clientPartneredDares];
-                  }
-                  interrupted = false;
-                  daresModal.showModal();
-                }}>Replace Dare</Button
-              >
-            </div>
-          {:else}
-            <div class="current-activity" role="status">
-              <p>{currentGameActivity}</p>
-              {#if showCurrentDare}
-                <p>{currentDare.dareText}</p>
-                <!-- {#if currentDare.timer}
+              </div>
+            {:else}
+              <div class="current-activity" role="status">
+                <p>{currentGameActivity}</p>
+                {#if showCurrentDare}
+                  <p>{currentDare.dareText}</p>
+                  <!-- {#if currentDare.timer}
                   TODO build timer
                 {/if}  -->
-              {/if}
-            </div>
-          {/if}
+                {/if}
+              </div>
+            {/if}
+          </div>
         </div>
       </section>
       <section
@@ -730,7 +765,7 @@
           </header>
         {/if}
         <div class="chatlog-container">
-          <ul class="chatlog" role="log">
+          <ul class="chatlog" role="log" bind:this={chatlogScroll}>
             {#each chatlog as chat}
               <li><strong>{chat.playerName}: </strong>{chat.message}</li>
             {/each}
@@ -914,7 +949,12 @@
       <h3>All Dares</h3>
       <div class="all-dares">
         <div class="scroll">
-          <DareListFilter bind:filtered {dares} showFilters={false} />
+          <DareListFilter
+            autofocusSearch
+            bind:filtered
+            {dares}
+            showFilters={false}
+          />
           <ul id="dare-list" class="dares-box">
             {#each $filteredDares as filteredDare (filteredDare.dare.dareId)}
               <li
@@ -1073,7 +1113,6 @@
         </div>
       </div>
     </section>
-    <!-- <p>Or</p> -->
     <section class="random-dare">
       <Button
         on:click={() => {
@@ -1219,7 +1258,6 @@
         </div>
       {/if}
     </section>
-    <!-- <p>Or</p> -->
     <section class="new-dares">
       {#if daresToAdd.length}
         <h3 transition:fade>New Dares</h3>
@@ -1650,6 +1688,7 @@
     height: 100vh;
     height: 100dvh;
     display: grid;
+    gap: 16px;
     grid-template-rows: auto 1fr auto;
     /* overflow-y: hidden; */
   }
@@ -1661,14 +1700,15 @@
     padding-inline: 8px;
     align-items: center;
     border: 1px solid var(--accent-color);
-    box-shadow: 0px 0px 20px 0px var(--accent-color) inset;
-    &:last-child {
-      margin-inline-start: auto;
-      align-self: center;
-    }
+    box-shadow: var(--inner-glow);
     @media (min-width: 700px) {
       padding-inline: 24px;
+      border-radius: var(--border-radius-med);
     }
+  }
+  .page-header:last-child {
+    margin-inline-start: auto;
+    align-self: center;
   }
 
   .main-container {
@@ -1678,9 +1718,10 @@
 
   main section {
     border: 1px solid var(--accent-color);
-    box-shadow: 0px 0px 20px 0px var(--accent-color) inset;
+    box-shadow: var(--inner-glow);
     padding: 4px 8px 0px;
     overflow-y: auto;
+    border-radius: var(--border-radius-large);
     @media (min-width: 700px) {
       padding: 8px 16px 0px;
     }
@@ -1694,6 +1735,7 @@
       "status"
       "panel";
     @media (min-width: 700px) {
+      gap: 16px;
       grid-template-columns: minmax(100px, 1fr) 3fr minmax(100px, 1fr);
       grid-template-rows: 60cqb 40cqb;
       grid-template-areas:
@@ -1732,7 +1774,7 @@
   }
 
   .darer {
-    box-shadow: 0px 0px 20px 0px var(--accent-color) inset;
+    box-shadow: var(--inner-glow);
   }
   .daree {
     box-shadow: 0px 0px 16px 0px var(--pop-color) inset;
@@ -1740,14 +1782,19 @@
 
   .gamelog {
     grid-area: 1/1/-1/-1;
-    display: grid;
-    grid-template-rows: auto 1fr auto;
-    gap: 12px;
+    container: gamelog / size;
     padding-block-end: 4px;
     @media (min-width: 700px) {
       grid-area: gamelog;
       padding-block-end: 12px;
     }
+  }
+  .gamelog-scroll {
+    display: grid;
+    height: 100cqb;
+    overflow-y: auto;
+    grid-template-rows: auto 1fr auto;
+    gap: 12px;
     & header {
       grid-row: 1 / 2;
     }
@@ -1760,7 +1807,7 @@
 
   .gamelog-list {
     max-height: 100cqb;
-    overflow-y: scroll;
+    overflow-y: auto;
     display: grid;
     gap: 12px;
     justify-items: start;
@@ -1769,9 +1816,9 @@
     }
     & li {
       padding: 8px 16px;
-      border-radius: calc(var(--border-radius-small) + 0.5rem);
+      border-radius: var(--border-radius-med);
       border: 1px solid var(--accent-color);
-      box-shadow: 0px 0px 20px 0px var(--accent-color) inset;
+      box-shadow: var(--inner-glow);
     }
   }
 
@@ -1782,23 +1829,19 @@
     background-color: var(--pop-color);
     color: var(--background-color);
     padding: 12px 16px 16px;
-    /* container: activity / size; */
-    border-radius: calc(var(--border-radius-small) + 0.5rem);
+    border-radius: var(--border-radius-med);
     border: 1px solid var(--accent-color);
-    /* box-shadow: 0px 0px 20px 0px hsl(345 80% 48%) inset; */
-    & strong,
-    & h3 {
+    & strong {
       color: var(--background-color);
     }
+  }
+  .activity h3 {
+    color: var(--background-color);
+    font-size: 1.25rem;
   }
   .activity ul {
     display: grid;
     gap: 12px;
-  }
-  .activity li {
-    border: 2px solid var(--background-color);
-    border-radius: calc(var(--border-radius-small) + 0.5rem);
-    padding: 8px;
   }
 
   .activity > :global(.center) {
@@ -1854,9 +1897,9 @@
     }
     & li {
       padding: 8px 16px;
-      border-radius: calc(var(--border-radius-small) + 0.5rem);
+      border-radius: var(--border-radius-med);
       border: 1px solid var(--accent-color);
-      box-shadow: 0px 0px 20px 0px var(--accent-color) inset;
+      box-shadow: var(--inner-glow);
     }
   }
 
@@ -1928,7 +1971,7 @@
     & button {
       background-color: inherit;
       border: 1px solid var(--accent-color);
-      box-shadow: 0px 0px 20px 0px var(--accent-color) inset;
+      box-shadow: var(--inner-glow);
     }
   }
 
@@ -1957,9 +2000,9 @@
   .dares-box > li {
     margin-block-start: 1rem;
     padding: 1rem;
-    border-radius: calc(var(--border-radius-small) + 0.5rem);
+    border-radius: var(--border-radius-med);
     border: 1px solid var(--accent-color);
-    box-shadow: 0px 0px 20px 0px var(--accent-color) inset;
+    box-shadow: var(--inner-glow);
   }
 
   .your-dares-box > li:first-child {
@@ -1975,7 +2018,7 @@
   .client-dares-wrapper {
     display: grid;
     border: 1px solid var(--accent-color);
-    border-radius: calc(var(--border-radius-small) + 0.5rem);
+    border-radius: var(--border-radius-med);
     padding-inline: 1rem;
     padding-block-end: 1rem;
     margin-block-start: 0.75rem;
