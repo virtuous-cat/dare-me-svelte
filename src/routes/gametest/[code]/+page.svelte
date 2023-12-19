@@ -38,6 +38,13 @@
   import NewDare, { getAllNewDares } from "$lib/NewDare.svelte";
   import { writable, type Writable } from "svelte/store";
   import DisplayDare from "$lib/DisplayDare.svelte";
+  // import {
+  //   IconCircleChevronDown,
+  //   IconCircleChevronUp,
+  //   IconClipboard,
+  //   IconEye,
+  //   IconEyeOff,
+  // } from "@tabler/icons-svelte";
 
   let clientPlayerName: string = "Player Name";
   let clientPlayerId: string = "bed95d35-9040-4c77-a5a4-55aab4bfe878";
@@ -175,7 +182,7 @@
   // TODO: Update when Auth
   const loggedIn = false;
   let screenWidth: number;
-  $: wide = screenWidth > 700;
+  $: wide = screenWidth >= 1000;
   let hideCode: boolean = true;
   let codeCopySuccess: boolean = false;
   let codeCopyError: boolean = false;
@@ -228,7 +235,7 @@
     timer: null,
   };
   let showCurrentDare: boolean = true;
-  let darerTurnStage: DarerTurnStage = darerTurnStages.SENT;
+  let darerTurnStage: DarerTurnStage = darerTurnStages.SELECT;
   let spinning: boolean = false;
   let dareeDares: GameDare[] = [
     {
@@ -283,11 +290,45 @@
   ];
   $: dareeSoloDares = dareeDares.filter(({ partnered }) => !partnered);
   $: dareePartneredDares = dareeDares.filter(({ partnered }) => partnered);
-  let darerPartneredDares: GameDare[] = [];
+  let darerPartneredDares: GameDare[] = [
+    {
+      dareId: "clq9avdn4000008jy15sojahbu",
+      dareText: "Dare you to do something.",
+      partnered: false,
+      timer: null,
+    },
+    {
+      dareId: "clq9avdn40000908jy15soahbu",
+      dareText: "Dare you to do something.",
+      partnered: true,
+      timer: null,
+    },
+    {
+      dareId: "clq9avdn400000l8jy15soahbu",
+      dareText: "Dare you to do something.",
+      partnered: true,
+      timer: null,
+    },
+    {
+      dareId: "clq9ahvdn4000008jy15soahbu",
+      dareText:
+        "Dare you to do something. Dare you to do something Dare you to do something  Dare you to do something Dare you to do something Dare you to do something",
+      partnered: true,
+      timer: null,
+    },
+    {
+      dareId: "clq9avdn4000008jy15osoahbu",
+      dareText: "Dare you to do something.",
+      partnered: true,
+      timer: null,
+    },
+  ];
+  let promptKeep: boolean = false;
   let clientPreviousDare: GameDare | null = null;
   let dareeTurnStage: DareeTurnStage = dareeTurnStages.CONFIRM;
   let activeTab: MobileTab = mobileTabs.PLAYERS;
   let newChat: boolean = false;
+  let expandHeader = false;
 
   let gamelogScroll: HTMLUListElement;
   let chatlogScroll: HTMLUListElement;
@@ -357,48 +398,76 @@
 
 <div class="body">
   <header class="page-header">
-    <div>
-      <strong>Game Code: {hideCode ? "****" : $page.params.code}</strong>
+    {#if !wide && !expandHeader}
+      <h1 class="logo-font">Dare Me</h1>
+      <Button
+        className="expand"
+        on:click={() => {
+          expandHeader = true;
+        }}
+        >v
+        <!-- <IconCircleChevronDown /> -->
+      </Button>
+    {:else}
+      <div>
+        <strong>Game Code: {hideCode ? "****" : $page.params.code}</strong>
+        <Button
+          on:click={() => {
+            hideCode = !hideCode;
+          }}
+          >{hideCode ? (wide ? "Show " : "") : wide ? "Hide " : ""}
+          <!-- {#if hideCode}
+            <IconEye />
+          {:else}
+            <IconEyeOff />
+          {/if} -->
+        </Button>
+        <Button
+          on:click={async () => {
+            try {
+              const copied = await navigator.clipboard.writeText(
+                $page.params.code
+              );
+              codeCopySuccess = true;
+            } catch (error) {
+              console.error(error);
+              codeCopyError = true;
+            }
+            setTimeout(() => {
+              codeCopyError = false;
+              codeCopySuccess = false;
+            }, 3000);
+          }}
+          className={codeCopySuccess ? "success" : codeCopyError ? "error" : ""}
+          >{wide ? "Copy " : ""}
+          <!-- <IconClipboard /> -->
+        </Button>
+      </div>
+      {#if wide}
+        <h1 class="logo-font">Dare Me</h1>
+      {/if}
       <Button
         on:click={() => {
-          hideCode = !hideCode;
-        }}>{hideCode ? "Show" : "Hide"}</Button
+          // socket.disconnect();
+          wipeStorage();
+          goto("/");
+        }}>Leave Game</Button
       >
-      <Button
-        on:click={async () => {
-          try {
-            const copied = await navigator.clipboard.writeText(
-              $page.params.code
-            );
-            codeCopySuccess = true;
-          } catch (error) {
-            console.error(error);
-            codeCopyError = true;
-          }
-          setTimeout(() => {
-            codeCopyError = false;
-            codeCopySuccess = false;
-          }, 3000);
-        }}
-        className={codeCopySuccess ? "success" : codeCopyError ? "error" : ""}
-        >Copy</Button
-      >
-    </div>
-    {#if wide}
-      <h1 class="logo-font">Dare Me</h1>
+      {#if !wide}
+        <Button
+          on:click={() => {
+            expandHeader = false;
+          }}
+          >C
+          <!-- <IconCircleChevronUp /> -->
+        </Button>
+      {/if}
     {/if}
-    <Button
-      on:click={() => {
-        // socket.disconnect();
-        wipeStorage();
-        goto("/");
-      }}>Leave Game</Button
-    >
   </header>
   <div class="main-container">
     <main>
       {#if !wide && !(activeTab === mobileTabs.GAME_LOG)}
-        <div class="current-activity" role="status">
+        <div class="current-activity mobile-status" role="status">
           <p>{currentGameActivity}</p>
           {#if showCurrentDare}
             <p>{currentDare.dareText}</p>
@@ -571,12 +640,13 @@
             {:else if clientIsDarer && darerTurnStage === darerTurnStages.COUNTERED}
               <p>
                 {players.get(daree)?.playerName} declined the dare you selected,
-                but offered to preform this dare instead:
+                but offered to perform this dare instead:
               </p>
               <DisplayDare dare={currentDare} />
+              <Button className="inverted start">Accept the Counteroffer</Button
+              >
               <p>
-                <Button className="inverted">Accept the Counteroffer</Button> Or
-                Choose one of {players.get(daree)?.playerName}'s
+                Or choose one of {players.get(daree)?.playerName}'s
                 <strong>Solo</strong> dares:
               </p>
               <h3>{players.get(daree)?.playerName}'s Solo Dares</h3>
@@ -593,45 +663,110 @@
               </ul>
             {:else if clientIsDarer && darerTurnStage === darerTurnStages.END}
               <p>You dared {players.get(daree)?.playerName} to:</p>
-              <p>{currentDare.dareText}</p>
+              <DisplayDare dare={currentDare} />
               <!-- {#if currentDare.timer}
                   TODO build timer
                 {/if}  -->
-              <Button className="inverted">End Your Turn</Button>
+              <Button
+                className="inverted center"
+                on:click={() => {
+                  if (promptKeep) {
+                    clientPreviousDare = currentDare;
+                    darerTurnStage = darerTurnStages.KEEP_DARE;
+                    promptKeep = false;
+                  } else {
+                    darerTurnStage = darerTurnStages.SPIN;
+                  }
+                  daree = "";
+                  darer = "";
+                }}>End Your Turn</Button
+              >
+            {:else if darerTurnStage === darerTurnStages.KEEP_DARE && clientPreviousDare}
+              <p>Would you like to keep this dare in your dare list?</p>
+              <DisplayDare dare={clientPreviousDare} />
+              <div class="keep-buttons center">
+                <Button
+                  className="inverted"
+                  on:click={() => {
+                    darerTurnStage = darerTurnStages.SPIN;
+                  }}>Keep Dare</Button
+                >
+                {#if !(!clientPreviousDare.partnered && clientSoloDares.length <= 2)}
+                  <Button
+                    className="inverted"
+                    on:click={() => {
+                      if (clientPreviousDare?.partnered) {
+                        clientPartneredDares = clientPartneredDares.filter(
+                          ({ dareId }) => dareId !== clientPreviousDare?.dareId
+                        );
+                      } else {
+                        clientSoloDares = clientSoloDares.filter(
+                          ({ dareId }) => dareId !== clientPreviousDare?.dareId
+                        );
+                      }
+                      darerTurnStage = darerTurnStages.SPIN;
+                    }}>Remove Dare</Button
+                  >
+                {/if}
+                <Button
+                  className="inverted"
+                  on:click={() => {
+                    if (clientPreviousDare?.partnered) {
+                      clientPartneredDares = clientPartneredDares.filter(
+                        ({ dareId }) => dareId !== clientPreviousDare?.dareId
+                      );
+                    } else {
+                      clientSoloDares = clientSoloDares.filter(
+                        ({ dareId }) => dareId !== clientPreviousDare?.dareId
+                      );
+                    }
+                    activeTab = mobileTabs.DARES;
+                    darerTurnStage = darerTurnStages.SPIN;
+                    if (!interrupted) {
+                      soloDaresToSave = [...clientSoloDares];
+                      partneredDaresToSave = [...clientPartneredDares];
+                    }
+                    interrupted = false;
+                    daresModal.showModal();
+                  }}>Replace Dare</Button
+                >
+              </div>
             {:else if clientIsDaree && dareeTurnStage === dareeTurnStages.CONFIRM}
               <p>
                 {players.get(darer)?.playerName} has dared you to:
               </p>
               <DisplayDare dare={currentDare} />
               <p>How do you want to respond?</p>
-              <Button className="inverted">Accept Dare</Button>
+              <Button className="inverted start">Accept Dare</Button>
 
               <p>
-                <Button className="inverted">Decline</Button> and have {players.get(
+                <Button className="inverted">Decline Dare</Button> and have {players.get(
                   darer
                 )?.playerName}
                 choose one of your <strong>Solo</strong> dares.
               </p>
-              <p>
-                Or counteroffer, by selecting a different dare from either of
-                your <strong>Partnered</strong> dares.
-              </p>
-              <p>
-                <small
-                  >{players.get(darer)?.playerName} will have the opportunity to
-                  decline and choose one of your <strong>Solo</strong> dares instead.</small
-                >
-              </p>
 
               {#if darerPartneredDares.length}
+                <div>
+                  <p>
+                    Or <strong>Counteroffer</strong>, by selecting a different
+                    dare from either of your <strong>Partnered</strong> dares:
+                  </p>
+                  <p>
+                    <small
+                      >{players.get(darer)?.playerName} will have the opportunity
+                      to decline and choose one of your <strong>Solo</strong> dares
+                      instead.</small
+                    >
+                  </p>
+                </div>
                 <h3>{players.get(darer)?.playerName}'s Partnered Dares</h3>
                 <ul>
                   {#each dareePartneredDares as dare (dare.dareId)}
                     <li>
                       <DisplayDare {dare}
                         ><svelte:fragment slot="buttons">
-                          className="inverted"
-                          <Button>Select</Button>
+                          <Button className="inverted">Select</Button>
                         </svelte:fragment></DisplayDare
                       >
                     </li>
@@ -670,28 +805,33 @@
             {:else if clientIsDaree && dareeTurnStage === dareeTurnStages.COUNTER_DECLINED}
               <p>
                 {players.get(daree)?.playerName} declined your counteroffer, and
-                instead dares you to:.
+                instead dares you to:
               </p>
               <DisplayDare dare={currentDare} />
             {:else if clientIsDaree && dareeTurnStage === dareeTurnStages.END}
               <p>{players.get(darer)?.playerName} dared you to:</p>
-              <p>{currentDare.dareText}</p>
+              <DisplayDare dare={currentDare} />
               <!-- {#if currentDare.timer}
                 TODO build timer
               {/if}  -->
               <Button
-                className="inverted"
+                className="inverted center"
                 on:click={() => {
-                  clientPreviousDare = currentDare;
+                  if (promptKeep) {
+                    clientPreviousDare = currentDare;
+                    dareeTurnStage = dareeTurnStages.KEEP_DARE;
+                    promptKeep = false;
+                  } else {
+                    dareeTurnStage = dareeTurnStages.CONFIRM;
+                  }
                   daree = "";
                   darer = "";
-                  dareeTurnStage = dareeTurnStages.KEEP_DARE;
                 }}>End Your Turn</Button
               >
             {:else if dareeTurnStage === dareeTurnStages.KEEP_DARE && clientPreviousDare}
               <p>Would you like to keep this dare in your dare list?</p>
               <DisplayDare dare={clientPreviousDare} />
-              <div>
+              <div class="keep-buttons center">
                 <Button
                   className="inverted"
                   on:click={() => {
@@ -742,7 +882,11 @@
               <div class="current-activity" role="status">
                 <p>{currentGameActivity}</p>
                 {#if showCurrentDare}
-                  <p>{currentDare.dareText}</p>
+                  {#if wide}
+                    <DisplayDare dare={currentDare} />
+                  {:else}
+                    <p>{currentDare.dareText}</p>
+                  {/if}
                   <!-- {#if currentDare.timer}
                   TODO build timer
                 {/if}  -->
@@ -818,24 +962,28 @@
         <div class="dare-lists">
           <div class="dare-list">
             <h3>Solo</h3>
-            <ul class="client-dares">
-              {#each clientSoloDares as dare (dare.dareId)}
-                <li>{dare.dareText}</li>
-              {:else}
-                <p class="alert">
-                  Please choose at least 2 solo dares to be included in the next
-                  spin.
-                </p>
-              {/each}
-            </ul>
+            <div class="client-dares-container">
+              <ul class="client-dares">
+                {#each clientSoloDares as dare (dare.dareId)}
+                  <li>{dare.dareText}</li>
+                {:else}
+                  <p class="alert">
+                    Please choose at least 2 solo dares to be included in the
+                    next spin.
+                  </p>
+                {/each}
+              </ul>
+            </div>
           </div>
           <div class="dare-list">
             <h3>Partnered</h3>
-            <ul class="client-dares">
-              {#each clientPartneredDares as dare (dare.dareId)}
-                <li>{dare.dareText}</li>
-              {/each}
-            </ul>
+            <div class="client-dares-container">
+              <ul class="client-dares">
+                {#each clientPartneredDares as dare (dare.dareId)}
+                  <li>{dare.dareText}</li>
+                {/each}
+              </ul>
+            </div>
           </div>
         </div>
       </section>
@@ -1681,6 +1829,11 @@
   h1 {
     color: var(--accent-color);
     font-size: 2.5rem;
+    @media (max-width: 999px) {
+      margin-inline: auto;
+      line-height: 0.7;
+      align-self: flex-end;
+    }
   }
 
   .body {
@@ -1688,28 +1841,40 @@
     height: 100vh;
     height: 100dvh;
     display: grid;
-    gap: 16px;
+    gap: 8px;
     grid-template-rows: auto 1fr auto;
+    box-shadow: var(--inner-glow);
     /* overflow-y: hidden; */
+    @media (min-width: 1000px) {
+      box-shadow: none;
+    }
   }
 
   .page-header {
     grid-row: 1/2;
     display: flex;
+    flex-wrap: wrap;
+    row-gap: 8px;
     justify-content: space-between;
-    padding-inline: 8px;
+    padding: 12px;
     align-items: center;
     border: 1px solid var(--accent-color);
-    box-shadow: var(--inner-glow);
-    @media (min-width: 700px) {
-      padding-inline: 24px;
-      border-radius: var(--border-radius-med);
+    box-shadow:
+      var(--inner-glow),
+      0px 0px 20px 0px var(--glow-color);
+    @media (min-width: 1000px) {
+      padding: 0 24px;
+      /* border-radius: var(--border-radius-med); */
+      box-shadow: var(--inner-glow);
     }
   }
-  .page-header:last-child {
-    margin-inline-start: auto;
+  .page-header > :global(:last-child) {
+    /* margin-inline-start: auto; */
     align-self: center;
   }
+  /* .page-header > :global(.expand) {
+    margin-inline-start: auto;
+  } */
 
   .main-container {
     container: main-container / size;
@@ -1719,7 +1884,7 @@
   main section {
     border: 1px solid var(--accent-color);
     box-shadow: var(--inner-glow);
-    padding: 4px 8px 0px;
+    padding: 8px 16px 8px;
     overflow-y: auto;
     border-radius: var(--border-radius-large);
     @media (min-width: 700px) {
@@ -1728,14 +1893,16 @@
   }
 
   main {
+    height: 100cqb;
     display: grid;
+    gap: 8px;
+    padding-inline: 8px;
     grid-template-columns: 1fr;
-    grid-template-rows: fit-content 1fr;
+    grid-template-rows: auto 1fr;
     grid-template-areas:
       "status"
       "panel";
-    @media (min-width: 700px) {
-      gap: 16px;
+    @media (min-width: 1000px) {
       grid-template-columns: minmax(100px, 1fr) 3fr minmax(100px, 1fr);
       grid-template-rows: 60cqb 40cqb;
       grid-template-areas:
@@ -1748,8 +1915,9 @@
     grid-area: panel;
     padding: 0;
     display: grid;
-    grid-template-rows: auto 1fr;
-    @media (min-width: 700px) {
+    grid-template-rows: 1fr;
+    @media (min-width: 1000px) {
+      grid-template-rows: auto 1fr;
       grid-area: players;
     }
     & header {
@@ -1761,7 +1929,9 @@
 
   .players-list-container {
     container: players-list / size;
-    grid-row: 2 / 3;
+    @media (min-width: 1000px) {
+      grid-row: 2 / 3;
+    }
   }
 
   .players-list {
@@ -1783,8 +1953,11 @@
   .gamelog {
     grid-area: 1/1/-1/-1;
     container: gamelog / size;
-    padding-block-end: 4px;
-    @media (min-width: 700px) {
+    padding-block-end: 12px;
+    /* border: none;
+    box-shadow: none;
+    padding: 0; */
+    @media (min-width: 1000px) {
       grid-area: gamelog;
       padding-block-end: 12px;
     }
@@ -1811,7 +1984,7 @@
     display: grid;
     gap: 12px;
     justify-items: start;
-    @media (min-width: 700px) {
+    @media (min-width: 1000px) {
       padding-inline-end: 4px;
     }
     & li {
@@ -1826,6 +1999,10 @@
     grid-row: 3 / 4;
     display: grid;
     gap: 16px;
+  }
+
+  .activity,
+  .mobile-status {
     background-color: var(--pop-color);
     color: var(--background-color);
     padding: 12px 16px 16px;
@@ -1847,12 +2024,43 @@
   .activity > :global(.center) {
     justify-self: center;
   }
+  .activity > :global(.start) {
+    justify-self: start;
+  }
+
+  .keep-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    column-gap: 16px;
+    row-gap: 12px;
+    @container (max-width: 450px) {
+      flex-direction: column;
+    }
+  }
+  /* @container (max-width: 450px) {
+    .keep-buttons{
+      flex-direction: column;
+    }
+  } */
+
+  .current-activity {
+    display: grid;
+    gap: 4px;
+    @media (min-width: 1000px) {
+      gap: 16px;
+    }
+  }
+
+  .mobile-status {
+    grid-area: status;
+    gap: 4px;
+  }
 
   .dares {
     grid-area: panel;
     display: grid;
     grid-template-rows: auto 1fr;
-    @media (min-width: 700px) {
+    @media (min-width: 1000px) {
       grid-area: dares;
     }
   }
@@ -1871,7 +2079,8 @@
     grid-row: 2 / 3;
     container: dare-lists / size;
     display: grid;
-    gap: 16px;
+    column-gap: 16px;
+    row-gap: 8px;
     @media (min-width: 700px) {
       grid-template-columns: 1fr 1fr;
     }
@@ -1879,19 +2088,28 @@
 
   .dare-list {
     max-height: 100cqb;
-    position: relative;
-    overflow: auto;
+    display: grid;
+    grid-template-rows: auto 1fr;
     & h3 {
-      position: sticky;
-      top: 0;
-      background-color: var(--background-color);
+      grid-row: 1 / 2;
     }
   }
 
+  .client-dares-container {
+    grid-row: 2 / 3;
+    container-type: size;
+    margin-block-start: 8px;
+    overflow: hidden;
+    @media (max-width: 700px) {
+      border: 1px solid var(--accent-color);
+      border-radius: var(--border-radius-med);
+    }
+  }
   .client-dares {
+    max-height: 100cqb;
+    overflow: auto;
     display: grid;
     gap: 12px;
-    margin-block-start: 8px;
     @media (min-width: 700px) {
       padding-inline-end: 4px;
     }
@@ -1902,17 +2120,22 @@
       box-shadow: var(--inner-glow);
     }
   }
+  .dares .alert {
+    padding-block: 8px;
+  }
+  .dare-list .alert {
+    padding-inline: 8px;
+  }
 
   .chat {
     grid-area: panel;
     display: grid;
     grid-template-rows: auto 1fr auto auto;
     gap: 12px;
-    padding-block-end: 4px;
+    padding-block-end: 12px;
     container: chat / inline-size;
-    @media (min-width: 700px) {
+    @media (min-width: 1000px) {
       grid-area: chat;
-      padding-block-end: 12px;
     }
     & header {
       grid-row: 1 / 2;
@@ -1921,6 +2144,7 @@
 
   .chat > :global(:last-child) {
     justify-self: end;
+    grid-row: 4 / 5;
   }
 
   .chat-box {
@@ -1932,6 +2156,7 @@
   }
 
   .chat-box-container {
+    grid-row: 3 / 4;
     width: 100cqi;
     min-width: 50px;
     border-radius: 5px;
@@ -1964,15 +2189,26 @@
 
   footer {
     grid-row: 3/4;
-    & ul {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-    }
-    & button {
-      background-color: inherit;
-      border: 1px solid var(--accent-color);
-      box-shadow: var(--inner-glow);
-    }
+    box-shadow: 0px 0px 20px 0px var(--glow-color);
+  }
+
+  footer ul {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+  }
+  footer li {
+    display: grid;
+    border: 1px solid var(--accent-color);
+    box-shadow: var(--inner-glow);
+  }
+  footer li[aria-selected="true"] {
+    --glow-color: var(--pop-color);
+    box-shadow: 0px 0px 20px 0px var(--glow-color) inset;
+  }
+  footer button {
+    background-color: inherit;
+    line-height: 1;
+    padding-block: 12px;
   }
 
   .inactive {

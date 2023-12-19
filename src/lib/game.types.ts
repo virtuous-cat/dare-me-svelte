@@ -15,6 +15,7 @@ export const darerTurnStages = {
   DECLINED: "declined",
   COUNTERED: "countered",
   END: "end",
+  KEEP_DARE: "keep-dare",
 } as const;
 
 export type DarerTurnStage =
@@ -24,8 +25,8 @@ export const dareeTurnStages = {
   CONFIRM: "confirm",
   DECLINED: "declined",
   COUNTERED: "counter",
-  COUNTER_ACCEPTED: "counter",
-  COUNTER_DECLINED: "counter",
+  COUNTER_ACCEPTED: "counter-accepted",
+  COUNTER_DECLINED: "counter-declined",
   END: "end",
   KEEP_DARE: "keep-dare",
 } as const;
