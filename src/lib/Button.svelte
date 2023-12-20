@@ -52,4 +52,15 @@
   .error {
     background-color: rgb(184, 44, 44);
   }
+
+  .icon-only {
+    aspect-ratio: 1;
+    padding: 8px;
+    border-radius: 50%;
+  }
+  .with-icon {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
 </style>

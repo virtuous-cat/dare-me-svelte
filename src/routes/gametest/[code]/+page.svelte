@@ -38,13 +38,13 @@
   import NewDare, { getAllNewDares } from "$lib/NewDare.svelte";
   import { writable, type Writable } from "svelte/store";
   import DisplayDare from "$lib/DisplayDare.svelte";
-  // import {
-  //   IconCircleChevronDown,
-  //   IconCircleChevronUp,
-  //   IconClipboard,
-  //   IconEye,
-  //   IconEyeOff,
-  // } from "@tabler/icons-svelte";
+  import CaretDown from "phosphor-svelte/lib/CaretDown";
+  import CaretUp from "phosphor-svelte/lib/CaretUp";
+  import Eye from "phosphor-svelte/lib/Eye";
+  import EyeSlash from "phosphor-svelte/lib/EyeSlash";
+  import Clipboard from "phosphor-svelte/lib/Clipboard";
+  import PencilSimpleLine from "phosphor-svelte/lib/PencilSimpleLine";
+  import Plus from "phosphor-svelte/lib/Plus";
 
   let clientPlayerName: string = "Player Name";
   let clientPlayerId: string = "bed95d35-9040-4c77-a5a4-55aab4bfe878";
@@ -182,7 +182,7 @@
   // TODO: Update when Auth
   const loggedIn = false;
   let screenWidth: number;
-  $: wide = screenWidth >= 1000;
+  $: wide = !screenWidth ? false : screenWidth >= 1000;
   let hideCode: boolean = true;
   let codeCopySuccess: boolean = false;
   let codeCopyError: boolean = false;
@@ -231,11 +231,11 @@
   let currentDare: GameDare = {
     dareId: "clq9avdn4000008jy15soahbu",
     dareText: "Dare you to do something.",
-    partnered: false,
+    partnered: true,
     timer: null,
   };
   let showCurrentDare: boolean = true;
-  let darerTurnStage: DarerTurnStage = darerTurnStages.SELECT;
+  let darerTurnStage: DarerTurnStage = darerTurnStages.SPIN;
   let spinning: boolean = false;
   let dareeDares: GameDare[] = [
     {
@@ -292,12 +292,6 @@
   $: dareePartneredDares = dareeDares.filter(({ partnered }) => partnered);
   let darerPartneredDares: GameDare[] = [
     {
-      dareId: "clq9avdn4000008jy15sojahbu",
-      dareText: "Dare you to do something.",
-      partnered: false,
-      timer: null,
-    },
-    {
       dareId: "clq9avdn40000908jy15soahbu",
       dareText: "Dare you to do something.",
       partnered: true,
@@ -324,7 +318,12 @@
     },
   ];
   let promptKeep: boolean = false;
-  let clientPreviousDare: GameDare | null = null;
+  let clientPreviousDare: GameDare | null = {
+    dareId: "clq9avdn4000008jy15sojahbu",
+    dareText: "Dare you to do something.",
+    partnered: false,
+    timer: null,
+  };
   let dareeTurnStage: DareeTurnStage = dareeTurnStages.CONFIRM;
   let activeTab: MobileTab = mobileTabs.PLAYERS;
   let newChat: boolean = false;
@@ -334,26 +333,51 @@
   let chatlogScroll: HTMLUListElement;
   let gamelogAutoscroll = false;
   let chatlogAutoscroll = false;
+  let gamelogSavedScrollableDist = 0;
+  let gamelogSavedScrollTop = 0;
+  let chatlogSavedScrollableDist = 0;
+  let chatlogSavedScrollTop = 0;
 
   beforeUpdate(() => {
     if (gamelogScroll) {
       const scrollableDistance =
-        gamelogScroll.scrollHeight - gamelogScroll.offsetHeight;
-      gamelogAutoscroll = gamelogScroll.scrollTop > scrollableDistance - 20;
+        gamelogScroll.offsetHeight === 0
+          ? gamelogSavedScrollableDist
+          : gamelogScroll.scrollHeight - gamelogScroll.offsetHeight;
+      const scrollTop =
+        gamelogScroll.offsetHeight === 0
+          ? gamelogSavedScrollTop
+          : gamelogScroll.scrollTop;
+      gamelogAutoscroll = scrollTop > scrollableDistance - 35;
+      gamelogSavedScrollableDist = scrollableDistance;
+      gamelogSavedScrollTop = scrollTop;
     }
     if (chatlogScroll) {
       const scrollableDistance =
-        chatlogScroll.scrollHeight - chatlogScroll.offsetHeight;
-      chatlogAutoscroll = chatlogScroll.scrollTop > scrollableDistance - 20;
+        chatlogScroll.offsetHeight === 0
+          ? chatlogSavedScrollableDist
+          : chatlogScroll.scrollHeight - chatlogScroll.offsetHeight;
+      const scrollTop =
+        chatlogScroll.offsetHeight === 0
+          ? chatlogSavedScrollTop
+          : chatlogScroll.scrollTop;
+      chatlogAutoscroll = scrollTop > scrollableDistance - 35;
+      chatlogSavedScrollableDist = scrollableDistance;
+      chatlogSavedScrollTop = scrollTop;
     }
   });
 
   afterUpdate(() => {
+    console.log("after update autoscroll", gamelogAutoscroll);
     if (gamelogAutoscroll) {
       gamelogScroll.scrollTo(0, gamelogScroll.scrollHeight);
+    } else {
+      gamelogScroll.scrollTo(0, gamelogSavedScrollTop);
     }
     if (chatlogAutoscroll) {
       chatlogScroll.scrollTo(0, chatlogScroll.scrollHeight);
+    } else {
+      chatlogScroll.scrollTo(0, chatlogSavedScrollTop);
     }
   });
 
@@ -397,30 +421,33 @@
 </svelte:head>
 
 <div class="body">
-  <header class="page-header">
+  <header class="page-header" class:expanded={!wide && expandHeader}>
     {#if !wide && !expandHeader}
       <h1 class="logo-font">Dare Me</h1>
       <Button
-        className="expand"
+        className="icon-only"
         on:click={() => {
           expandHeader = true;
         }}
-        >v
-        <!-- <IconCircleChevronDown /> -->
+      >
+        <CaretDown />
       </Button>
     {:else}
-      <div>
+      <div class="game-code">
         <strong>Game Code: {hideCode ? "****" : $page.params.code}</strong>
         <Button
+          className={screenWidth > 600 ? "with-icon" : "icon-only"}
           on:click={() => {
             hideCode = !hideCode;
           }}
-          >{hideCode ? (wide ? "Show " : "") : wide ? "Hide " : ""}
-          <!-- {#if hideCode}
-            <IconEye />
+        >
+          {#if hideCode}
+            {screenWidth > 600 ? "Show" : ""}
+            <Eye />
           {:else}
-            <IconEyeOff />
-          {/if} -->
+            {screenWidth > 600 ? "Hide" : ""}
+            <EyeSlash />
+          {/if}
         </Button>
         <Button
           on:click={async () => {
@@ -438,9 +465,12 @@
               codeCopySuccess = false;
             }, 3000);
           }}
-          className={codeCopySuccess ? "success" : codeCopyError ? "error" : ""}
-          >{wide ? "Copy " : ""}
-          <!-- <IconClipboard /> -->
+          className={`${screenWidth > 600 ? "with-icon" : "icon-only"} ${
+            codeCopySuccess ? "success" : codeCopyError ? "error" : ""
+          }`}
+        >
+          {screenWidth > 600 ? "Copy" : ""}
+          <Clipboard />
         </Button>
       </div>
       {#if wide}
@@ -455,11 +485,12 @@
       >
       {#if !wide}
         <Button
+          className="icon-only"
           on:click={() => {
             expandHeader = false;
           }}
-          >C
-          <!-- <IconCircleChevronUp /> -->
+        >
+          <CaretUp />
         </Button>
       {/if}
     {/if}
@@ -557,7 +588,7 @@
                 <p class="center">Spinning...</p>
               {:else if daree}
                 <p class="daree center">
-                  <strong>{players.get(daree)?.playerName}</strong>
+                  <strong>{players.get(daree)?.playerName}!</strong>
                 </p>
               {:else}
                 <Button
@@ -691,7 +722,7 @@
                     darerTurnStage = darerTurnStages.SPIN;
                   }}>Keep Dare</Button
                 >
-                {#if !(!clientPreviousDare.partnered && clientSoloDares.length <= 2)}
+                {#if (clientPreviousDare.partnered && clientSoloDares.length + clientPartneredDares.length > 2) || (!clientPreviousDare.partnered && clientSoloDares.length >= 2 && clientSoloDares.length + clientPartneredDares.length > 2)}
                   <Button
                     className="inverted"
                     on:click={() => {
@@ -1123,6 +1154,7 @@
                 >
                   <svelte:fragment slot="buttons">
                     <Button
+                      className={wide ? "with-icon" : "icon-only"}
                       on:click={() => {
                         daresToAdd = [
                           ...daresToAdd,
@@ -1136,7 +1168,7 @@
                             replaceParent: false,
                           },
                         ];
-                      }}>{wide ? "Add New Variant" : "+"}</Button
+                      }}>{wide ? "Add New Variant" : ""}<Plus /></Button
                     >
                     <Button
                       on:click={() => {
@@ -1184,6 +1216,7 @@
                   </svelte:fragment>
                   <svelte:fragment slot="variant-buttons" let:variantId>
                     <Button
+                      className={wide ? "with-icon" : "icon-only"}
                       on:click={() => {
                         const variant = filteredDare.dare.children.find(
                           (child) => child.dareId === variantId
@@ -1203,7 +1236,7 @@
                             replaceParent: false,
                           },
                         ];
-                      }}>{wide ? "Add New Variant" : "+"}</Button
+                      }}>{wide ? "Add New Variant" : ""}<Plus /></Button
                     >
                     <Button
                       on:click={() => {
@@ -1273,6 +1306,7 @@
           <Dare dare={randomDare} withDetails withVariants>
             <svelte:fragment slot="buttons">
               <Button
+                className={wide ? "with-icon" : "icon-only"}
                 on:click={() => {
                   if (!randomDare) {
                     return;
@@ -1289,7 +1323,7 @@
                       replaceParent: false,
                     },
                   ];
-                }}>{wide ? "Add New Variant" : "+"}</Button
+                }}>{wide ? "Add New Variant" : ""}<Plus /></Button
               >
               <Button
                 on:click={() => {
@@ -1337,6 +1371,7 @@
             </svelte:fragment>
             <svelte:fragment slot="variant-buttons" let:variantId>
               <Button
+                className={wide ? "with-icon" : "icon-only"}
                 on:click={() => {
                   const variant = randomDare?.children.find(
                     (child) => child.dareId === variantId
@@ -1356,7 +1391,7 @@
                       replaceParent: false,
                     },
                   ];
-                }}>{wide ? "Add New Variant" : "+"}</Button
+                }}>{wide ? "Add New Variant" : ""}<Plus /></Button
               >
               <Button
                 on:click={() => {
@@ -1507,6 +1542,7 @@
           </label>
           <div class="new-dares-btn" transition:fade>
             <Button
+              className="icon-only"
               on:click={() => {
                 daresToAdd = [
                   ...daresToAdd,
@@ -1518,7 +1554,7 @@
                     dareToAddId: nanoid(),
                   },
                 ];
-              }}>+</Button
+              }}><Plus /></Button
             >
           </div>
           <div class="new-dares-btn" transition:fade>
@@ -1671,6 +1707,7 @@
               <Dare {dare} withDetails>
                 <svelte:fragment slot="buttons">
                   <Button
+                    className={screenWidth > 500 ? "with-icon" : "icon-only"}
                     on:click={() => {
                       daresToAdd = [
                         ...daresToAdd,
@@ -1684,7 +1721,10 @@
                           replaceParent: true,
                         },
                       ];
-                    }}>Replace with New Variant</Button
+                    }}
+                    >{screenWidth > 500
+                      ? "Replace with New Variant"
+                      : ""}<PencilSimpleLine /></Button
                   >
                   <Button
                     on:click={() => {
@@ -1710,6 +1750,7 @@
               <Dare {dare} withDetails>
                 <svelte:fragment slot="buttons">
                   <Button
+                    className={screenWidth > 500 ? "with-icon" : "icon-only"}
                     on:click={() => {
                       daresToAdd = [
                         ...daresToAdd,
@@ -1723,7 +1764,10 @@
                           replaceParent: true,
                         },
                       ];
-                    }}>Replace with New Variant</Button
+                    }}
+                    >{screenWidth > 500
+                      ? "Replace with New Variant"
+                      : ""}<PencilSimpleLine /></Button
                   >
                   <Button
                     on:click={() => {
@@ -1829,22 +1873,20 @@
   h1 {
     color: var(--accent-color);
     font-size: 2.5rem;
+    line-height: 0.7;
+    align-self: flex-end;
     @media (max-width: 999px) {
       margin-inline: auto;
-      line-height: 0.7;
-      align-self: flex-end;
     }
   }
 
   .body {
-    /* --header-height: 4rem; */
     height: 100vh;
     height: 100dvh;
     display: grid;
     gap: 8px;
     grid-template-rows: auto 1fr auto;
     box-shadow: var(--inner-glow);
-    /* overflow-y: hidden; */
     @media (min-width: 1000px) {
       box-shadow: none;
     }
@@ -1856,25 +1898,29 @@
     flex-wrap: wrap;
     row-gap: 8px;
     justify-content: space-between;
-    padding: 12px;
+    padding: 12px 24px;
     align-items: center;
     border: 1px solid var(--accent-color);
     box-shadow:
       var(--inner-glow),
       0px 0px 20px 0px var(--glow-color);
     @media (min-width: 1000px) {
-      padding: 0 24px;
-      /* border-radius: var(--border-radius-med); */
+      padding: 12px 24px;
       box-shadow: var(--inner-glow);
     }
   }
-  .page-header > :global(:last-child) {
-    /* margin-inline-start: auto; */
-    align-self: center;
+  .expanded {
+    column-gap: 28px;
   }
-  /* .page-header > :global(.expand) {
+  .expanded > :global(:last-child) {
     margin-inline-start: auto;
-  } */
+    /* align-self: center; */
+  }
+  .game-code {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
 
   .main-container {
     container: main-container / size;
@@ -1884,11 +1930,11 @@
   main section {
     border: 1px solid var(--accent-color);
     box-shadow: var(--inner-glow);
-    padding: 8px 16px 8px;
+    padding: 12px 16px 8px;
     overflow-y: auto;
     border-radius: var(--border-radius-large);
     @media (min-width: 700px) {
-      padding: 8px 16px 0px;
+      padding: 12px 16px 0px;
     }
   }
 
@@ -1954,9 +2000,6 @@
     grid-area: 1/1/-1/-1;
     container: gamelog / size;
     padding-block-end: 12px;
-    /* border: none;
-    box-shadow: none;
-    padding: 0; */
     @media (min-width: 1000px) {
       grid-area: gamelog;
       padding-block-end: 12px;
@@ -1966,16 +2009,22 @@
     display: grid;
     height: 100cqb;
     overflow-y: auto;
-    grid-template-rows: auto 1fr auto;
+    grid-template-rows: 1fr auto;
     gap: 12px;
-    & header {
-      grid-row: 1 / 2;
+    @media (min-width: 1000px) {
+      grid-template-rows: auto 1fr auto;
+      & header {
+        grid-row: 1 / 2;
+      }
     }
   }
 
   .gamelog-list-container {
-    grid-row: 2 / 3;
+    grid-row: 1 / 2;
     container: gamelog-list / size;
+    @media (min-width: 1000px) {
+      grid-row: 2 / 3;
+    }
   }
 
   .gamelog-list {
@@ -1996,9 +2045,12 @@
   }
 
   .activity {
-    grid-row: 3 / 4;
+    grid-row: 2 / 3;
     display: grid;
     gap: 16px;
+    @media (min-width: 1000px) {
+      grid-row: 3 / 4;
+    }
   }
 
   .activity,
@@ -2122,6 +2174,9 @@
   }
   .dares .alert {
     padding-block: 8px;
+    @media (max-width: 700px) {
+      font-size: 0.8em;
+    }
   }
   .dare-list .alert {
     padding-inline: 8px;
@@ -2203,7 +2258,7 @@
   }
   footer li[aria-selected="true"] {
     --glow-color: var(--pop-color);
-    box-shadow: 0px 0px 20px 0px var(--glow-color) inset;
+    box-shadow: 0px 0px 12px 0px var(--glow-color) inset;
   }
   footer button {
     background-color: inherit;
@@ -2245,6 +2300,9 @@
     margin-block-start: 0;
   }
 
+  .dares-modal {
+    padding-block-end: 4px;
+  }
   .dares-modal section {
     margin-block-end: 1.25rem;
     margin-block-start: 0.75rem;
@@ -2269,6 +2327,7 @@
   .scroll {
     overflow: auto;
     max-height: inherit;
+    padding-block-end: 12px;
   }
   .db-dares {
     margin-block-start: 1.25rem;

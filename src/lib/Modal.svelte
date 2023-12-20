@@ -29,7 +29,7 @@
   }
 
   .scroll {
-    padding: 8px;
+    padding-inline: 4px;
     max-height: calc(100dvh - 96px);
     overflow: auto;
   }

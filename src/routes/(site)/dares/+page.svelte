@@ -17,6 +17,7 @@
   import MultiUpdate from "./MultiUpdate.svelte";
   import { fade, slide } from "svelte/transition";
   import { page } from "$app/stores";
+  import Plus from "phosphor-svelte/lib/Plus";
 
   export let data;
   export let form;
@@ -180,6 +181,7 @@
         <small class="alert">{saveAllError}</small>
         <div class="new-dares-btn" transition:fade>
           <Button
+            className="icon-only"
             on:click={() => {
               daresToAdd = [
                 ...daresToAdd,
@@ -191,7 +193,7 @@
                   dareToAddId: nanoid(),
                 },
               ];
-            }}>+</Button
+            }}><Plus /></Button
           >
         </div>
         <div class="new-dares-btn" transition:fade>
@@ -458,13 +460,14 @@
             >
               <svelte:fragment slot="buttons">
                 <Button
+                  className="icon-only"
                   title="Add Variant"
                   on:click={() => {
                     maybeDiscardEditInProcess();
                     editInProcess = true;
                     newVariantParentId = filteredDare.dare.dareId;
                     filteredDare.withNewVariant = true;
-                  }}>+</Button
+                  }}><Plus /></Button
                 >
                 {#if $admin}
                   <Button
@@ -479,13 +482,14 @@
               </svelte:fragment>
               <svelte:fragment slot="variant-buttons" let:variantId>
                 <Button
+                  className="icon-only"
                   title="Add Variant"
                   on:click={() => {
                     maybeDiscardEditInProcess();
                     editInProcess = true;
                     newVariantParentId = variantId;
                     filteredDare.withNewVariant = true;
-                  }}>+</Button
+                  }}><Plus /></Button
                 >
                 {#if $admin}
                   <Button

@@ -4,6 +4,7 @@
   import { getContext, onMount } from "svelte";
   import type { Writable } from "svelte/store";
   import { fade } from "svelte/transition";
+  import ArrowUp from "phosphor-svelte/lib/ArrowUp";
 
   console.log("(site) layout in");
 
@@ -83,10 +84,11 @@
   {#if scroll > screenHeight / 2}
     <div class="top" transition:fade={{ duration: 200 }}>
       <Button
+        className="icon-only"
         title="Scroll to Top"
         on:click={() => {
           window.scrollTo(0, 0);
-        }}>^</Button
+        }}><ArrowUp /></Button
       >
     </div>
   {/if}
