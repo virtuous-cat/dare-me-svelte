@@ -137,6 +137,7 @@
       playerName: clientPlayerName,
     },
   ];
+  let pendingChats: string[] = ["Said something new", "Something newer"];
 
   let outgoingChat: string = "";
 
@@ -326,7 +327,7 @@
   };
   let dareeTurnStage: DareeTurnStage = dareeTurnStages.CONFIRM;
   let activeTab: MobileTab = mobileTabs.PLAYERS;
-  let newChat: boolean = false;
+  let newChat: boolean = true;
   let expandHeader = false;
 
   let gamelogScroll: HTMLUListElement;
@@ -528,16 +529,19 @@
                 class:daree={player.playerId === daree}
               >
                 <div><strong>{player.playerName}</strong></div>
-                <!-- {#if player.playerId === host}
-                <div>
-                  <small>HOST</small>
-                  {#if host === clientPlayerId}
+                {#if player.playerId === host}
+                  <div>
+                    <small>HOST</small>
+                    <!-- {#if host === clientPlayerId}
                     <Button>Host Actions</Button>
-                  {/if}
-                </div>
-              {:else if host === clientPlayerId}
-                <Button>host action: kick</Button>
-              {/if} -->
+                  {/if} -->
+                  </div>
+                {:else if host === clientPlayerId}
+                  <div class="host-player-buttons">
+                    <Button>Make Host</Button>
+                    <Button>Kick</Button>
+                  </div>
+                {/if}
                 {#if player.playerId === darer}
                   <p>DARER</p>
                 {:else if player.playerId === daree}
@@ -944,6 +948,11 @@
             {#each chatlog as chat}
               <li><strong>{chat.playerName}: </strong>{chat.message}</li>
             {/each}
+            {#each pendingChats as chat}
+              <li class="pending-chat">
+                <strong>{clientPlayerName}: </strong>{chat}
+              </li>
+            {/each}
           </ul>
         </div>
         <div class="chat-box-container">
@@ -1071,11 +1080,13 @@
               activeTab = mobileTabs.CHAT;
               newChat = false;
             }}
-            >Chat <div
-              class="newChat"
-              class:inactive={!newChat}
-              aria-label="new chat message"
-            /></button
+            ><span
+              >Chat <div
+                class="newChat"
+                class:inactive={!newChat}
+                aria-label="new chat message"
+              /></span
+            ></button
           >
         </li>
       </ul>
@@ -1995,6 +2006,11 @@
   .daree {
     box-shadow: 0px 0px 16px 0px var(--pop-color) inset;
   }
+  .host-player-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
 
   .gamelog {
     grid-area: 1/1/-1/-1;
@@ -2242,6 +2258,10 @@
     padding-inline: 8px 4px;
   }
 
+  .pending-chat {
+    opacity: 0.65;
+  }
+
   footer {
     grid-row: 3/4;
     box-shadow: 0px 0px 20px 0px var(--glow-color);
@@ -2270,15 +2290,15 @@
     display: none;
   }
 
-  #chat-tab {
+  #chat-tab span {
     position: relative;
   }
 
   .newChat {
     position: absolute;
-    top: 1rem;
-    right: 1rem;
-    width: 0.25rem;
+    top: 0;
+    right: -0.3em;
+    width: 0.5rem;
     aspect-ratio: 1;
     border-radius: 50%;
     background-color: var(--accent-color);
