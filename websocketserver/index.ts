@@ -28,7 +28,14 @@ const io = new Server<
   ServerToClientEvents,
   InterServerEvents,
   SocketData
->(server);
+>(server, {
+  connectionStateRecovery: {
+    // the backup duration of the sessions and the packets
+    maxDisconnectionDuration: 2 * 60 * 1000,
+    // whether to skip middlewares upon successful recovery
+    skipMiddlewares: true,
+  },
+});
 
 io.use((socket, next) => {
   const roomResult = GameCodeValidator.safeParse(
@@ -69,12 +76,14 @@ io.on("connection", (socket) => {
     return;
   }
 
-  socket.join([gameRoom, playerId]);
+  if (!socket.recovered) {
+    socket.join([gameRoom, playerId]);
 
-  socket.emit("syncGameState", { players: [] });
+    socket.emit("syncGameState", { players: [] });
+  }
 
   socket.on("chat", (message) => {
-    socket.to(gameRoom).emit("serverChat", {
+    io.to(gameRoom).emit("serverChat", {
       message,
       playerId,
       playerName,
