@@ -7,6 +7,7 @@ import {
   GameCodeValidator,
   PlayerNameValidator,
 } from "../src/lib/game.types";
+import { getNewDaree } from "./queries.js";
 
 import { Server } from "socket.io";
 
@@ -57,7 +58,7 @@ export const webSocketServer = {
       next();
     });
 
-    io.on("connection", (socket) => {
+    io.on("connection", (socket): void => {
       const gameRoom = socket.data.gameRoom;
       const playerId = socket.data.playerId;
       const playerName = socket.data.playerName;
@@ -70,8 +71,12 @@ export const webSocketServer = {
       if (!socket.recovered) {
         socket.join([gameRoom, playerId]);
 
-        socket.emit("syncGameState", { players: [] });
+        socket.emit("syncGameState", { players: [], hostId: "" });
       }
+
+      socket.on("spin", async () => {
+        const daree = await getNewDaree(gameRoom);
+      });
 
       socket.on("chat", (message) => {
         io.to(gameRoom).emit("serverChat", {

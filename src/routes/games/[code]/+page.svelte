@@ -92,41 +92,6 @@
 
   let daree: string = "";
 
-  function sendChat() {
-    pendingChats = [...pendingChats, outgoingChat];
-    socket.emit("chat", outgoingChat);
-    outgoingChat = "";
-  }
-
-  socket.on("connect_error", (err) => {
-    if (err.message === "Invalid auth") {
-      wipeStorage();
-      goto("/?message=gameerror");
-    }
-  });
-
-  socket.on("disconnect", (reason) => {
-    if (reason === "io server disconnect") {
-      wipeStorage();
-      goto("/?message=gameerror");
-    }
-  });
-
-  socket.on("serverChat", (message) => {
-    if (pendingChats.length) {
-      if (message.playerId !== clientPlayerId) {
-        pendingChats = [];
-      } else {
-        const index = pendingChats.indexOf(message.message);
-        pendingChats = pendingChats.toSpliced(0, index + 1);
-      }
-    }
-    chatlog = [...chatlog, message];
-    if (activeTab !== mobileTabs.CHAT && message.playerId !== clientPlayerId) {
-      newChat = true;
-    }
-  });
-
   export let data;
   // export let form;
   // const admin = getContext<Writable<boolean>>("admin");
@@ -156,10 +121,11 @@
   $: dareeSoloDares = dareeDares.filter(({ partnered }) => !partnered);
   $: dareePartneredDares = dareeDares.filter(({ partnered }) => partnered);
   let darerPartneredDares: GameDare[] = [];
-  let dareeTurnStage: DareeTurnStage = dareeTurnStages.CONFIRM;
+  let dareeTurnStage: DareeTurnStage = dareeTurnStages.CHOSEN;
   let activeTab: MobileTab = mobileTabs.PLAYERS;
   let newChat: boolean = false;
   let expandHeader = false;
+  let socketServerError: string = "";
 
   let gamelogScroll: HTMLUListElement;
   let chatlogScroll: HTMLUListElement;
@@ -210,6 +176,103 @@
       chatlogScroll.scrollTo(0, chatlogScroll.scrollHeight);
     } else {
       chatlogScroll.scrollTo(0, chatlogSavedScrollTop);
+    }
+  });
+
+  function sendChat() {
+    pendingChats = [...pendingChats, outgoingChat];
+    socket.emit("chat", outgoingChat);
+    outgoingChat = "";
+  }
+
+  socket.on("connect_error", (err) => {
+    if (err.message === "Invalid auth") {
+      wipeStorage();
+      goto("/?message=gameerror");
+    }
+  });
+
+  socket.on("disconnect", (reason) => {
+    if (reason === "io server disconnect") {
+      wipeStorage();
+      goto("/?message=gameerror");
+    }
+  });
+
+  socket.on("connect", () => {
+    if (clientPartneredDares.length || clientSoloDares.length) {
+      const gameDares = [...clientSoloDares, ...clientPartneredDares].map(
+        (dare) => {
+          return {
+            dareId: dare.dareId,
+            dareText: dare.dareText,
+            partnered: dare.partnered,
+            timer: dare.timer,
+          };
+        }
+      );
+      socket.emit("updateDares", gameDares);
+    }
+    if (!socket.recovered) {
+      socket.emit("requestSync");
+    }
+  });
+
+  socket.on("syncGameState", (state) => {
+    if (state.darer) {
+      currentGameActivity = `It is currently ${state.darer}'s turn${
+        state.daree ? " to dare " + state.daree : ""
+      }.`;
+    }
+    if (state.currentDare) {
+      currentDare = state.currentDare;
+    }
+    host = state.hostId;
+    darer = state.darer ?? "";
+    daree = state.daree ?? "";
+    players = new Map(state.players);
+  });
+
+  socket.on("spinning", () => {
+    currentGameActivity = `${players.get(darer)?.playerName} is spinning.`;
+  });
+
+  socket.on("dareeSelected", (newDaree) => {
+    spinning = false;
+    if ("error" in newDaree) {
+      socketServerError = newDaree.error;
+      return;
+    }
+    daree = newDaree.dareeId;
+    dareeDares = newDaree.dareeDares;
+    currentGameActivity = `${players.get(darer)?.playerName} has landed on ${
+      players.get(newDaree.dareeId)?.playerName
+    }!`;
+    if (clientPlayerId === newDaree.dareeId && daresModal.open) {
+      interruptModal.showModal();
+    }
+    setTimeout(() => {
+      if (clientIsDarer) {
+        darerTurnStage = darerTurnStages.SELECT;
+      }
+      currentGameActivity = `${
+        players.get(darer)?.playerName
+      } is selecting a dare for ${players.get(newDaree.dareeId)?.playerName}.`;
+    }, 1000);
+  });
+
+  socket.on("serverChat", (message) => {
+    if (pendingChats.length) {
+      if (message.playerId !== clientPlayerId) {
+        pendingChats = [];
+      } else {
+        const index = pendingChats.indexOf(message.message);
+        pendingChats = pendingChats.toSpliced(0, index + 1);
+      }
+    }
+    chatlog = [...chatlog, message];
+    if (activeTab !== mobileTabs.CHAT && message.playerId !== clientPlayerId) {
+      newChat = true;
     }
   });
 
@@ -370,7 +433,7 @@
                 {:else if host === clientPlayerId}
                   <div class="host-player-buttons">
                     <Button>Make Host</Button>
-                    <Button>Kick</Button>
+                    <!-- <Button>Kick</Button> -->
                   </div>
                 {/if}
                 {#if player.playerId === darer}
@@ -429,12 +492,14 @@
                 <Button
                   className="inverted center"
                   on:click={() => {
+                    socketServerError = "";
                     spinning = true;
-                    setTimeout(() => {
-                      spinning = false;
-                    }, 2000);
+                    socket.emit("spin");
                   }}>Spin</Button
                 >
+                {#if socketServerError}
+                  <p>socketServerError</p>
+                {/if}
               {/if}
             {:else if clientIsDarer && darerTurnStage === darerTurnStages.SELECT}
               <div>
@@ -450,6 +515,9 @@
                   >
                 </p>
               </div>
+              {#if socketServerError}
+                <p>socketServerError</p>
+              {/if}
               {#if dareePartneredDares.length}
                 <h3>{players.get(daree)?.playerName}'s Partnered Dares</h3>
                 <ul>
@@ -457,7 +525,12 @@
                     <li>
                       <DisplayDare {dare}
                         ><svelte:fragment slot="buttons">
-                          <Button className="inverted">Select</Button>
+                          <Button
+                            className="inverted"
+                            on:click={() => {
+                              socketServerError = "";
+                            }}>Select</Button
+                          >
                         </svelte:fragment></DisplayDare
                       >
                     </li>
@@ -597,21 +670,64 @@
                   }}>Replace Dare</Button
                 >
               </div>
+            {:else if clientIsDaree && dareeTurnStage === dareeTurnStages.CHOSEN}
+              <p>{players.get(darer)?.playerName} landed on you!</p>
+              <p>
+                {players.get(darer)?.playerName} is selecting a dare for you.
+              </p>
             {:else if clientIsDaree && dareeTurnStage === dareeTurnStages.CONFIRM}
               <p>
                 {players.get(darer)?.playerName} has dared you to:
               </p>
               <DisplayDare dare={currentDare} />
               <p>How do you want to respond?</p>
-              <Button className="inverted start">Accept Dare</Button>
+              <Button
+                className="inverted start"
+                on:click={() => {
+                  socketServerError = "";
+                  socket
+                    .timeout(5000)
+                    .emit(
+                      "dareeResponse",
+                      { response: "accept" },
+                      (err, ack) => {
+                        if (err || ack !== "accepted") {
+                          socketServerError =
+                            "Something went wrong, please try again";
+                          return;
+                        }
+                        dareeTurnStage = dareeTurnStages.END;
+                      }
+                    );
+                }}>Accept Dare</Button
+              >
 
               <p>
-                <Button className="inverted">Decline Dare</Button> and have {players.get(
-                  darer
-                )?.playerName}
+                <Button
+                  className="inverted"
+                  on:click={() => {
+                    socketServerError = "";
+                    socket
+                      .timeout(5000)
+                      .emit(
+                        "dareeResponse",
+                        { response: "decline" },
+                        (err, ack) => {
+                          if (err || ack !== "declined") {
+                            socketServerError =
+                              "Something went wrong, please try again";
+                            return;
+                          }
+                          dareeTurnStage = dareeTurnStages.DECLINED;
+                        }
+                      );
+                  }}>Decline Dare</Button
+                > and have {players.get(darer)?.playerName}
                 choose one of your <strong>Solo</strong> dares.
               </p>
-
+              {#if socketServerError}
+                <p>socketServerError</p>
+              {/if}
               {#if darerPartneredDares.length}
                 <div>
                   <p>
@@ -628,11 +744,32 @@
                 </div>
                 <h3>{players.get(darer)?.playerName}'s Partnered Dares</h3>
                 <ul>
-                  {#each dareePartneredDares as dare (dare.dareId)}
+                  {#each darerPartneredDares as dare (dare.dareId)}
                     <li>
                       <DisplayDare {dare}
                         ><svelte:fragment slot="buttons">
-                          <Button className="inverted">Select</Button>
+                          <Button
+                            className="inverted"
+                            on:click={() => {
+                              socketServerError = "";
+                              socket.timeout(5000).emit(
+                                "dareeResponse",
+                                {
+                                  response: "counter",
+                                  dareOwner: "darer",
+                                  counter: dare,
+                                },
+                                (err, ack) => {
+                                  if (err || ack !== "countered") {
+                                    socketServerError =
+                                      "Something went wrong, please try again";
+                                    return;
+                                  }
+                                  dareeTurnStage = dareeTurnStages.COUNTERED;
+                                }
+                              );
+                            }}>Select</Button
+                          >
                         </svelte:fragment></DisplayDare
                       >
                     </li>
@@ -646,7 +783,28 @@
                     <li>
                       <DisplayDare {dare}
                         ><svelte:fragment slot="buttons">
-                          <Button className="inverted">Select</Button>
+                          <Button
+                            className="inverted"
+                            on:click={() => {
+                              socketServerError = "";
+                              socket.timeout(5000).emit(
+                                "dareeResponse",
+                                {
+                                  response: "counter",
+                                  dareOwner: "daree",
+                                  counter: dare,
+                                },
+                                (err, ack) => {
+                                  if (err || ack !== "countered") {
+                                    socketServerError =
+                                      "Something went wrong, please try again";
+                                    return;
+                                  }
+                                  dareeTurnStage = dareeTurnStages.COUNTERED;
+                                }
+                              );
+                            }}>Select</Button
+                          >
                         </svelte:fragment></DisplayDare
                       >
                     </li>
@@ -1700,6 +1858,7 @@
   on:close={() => {
     interrupted = true;
     daresModal.close();
+    activeTab = mobileTabs.GAME_LOG;
   }}
 >
   <div class="interrupt">

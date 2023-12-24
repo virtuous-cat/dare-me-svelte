@@ -3,6 +3,7 @@ import {
   BaseDareSchema,
   INTERACTION,
   GameDareSchema,
+  type GameDare,
 } from "./db.types.js";
 
 import { z } from "zod";
@@ -22,6 +23,7 @@ export type DarerTurnStage =
   (typeof darerTurnStages)[keyof typeof darerTurnStages];
 
 export const dareeTurnStages = {
+  CHOSEN: "chosen",
   CONFIRM: "confirm",
   DECLINED: "declined",
   COUNTERED: "counter",
@@ -78,29 +80,26 @@ export const PlayerSchema = z.object({
   playerId: PlayerIdSchema,
   playerName: PlayerNameSchema,
   ready: z.boolean(),
-  dares: GameDareSchema.array(),
 });
 
 export type Player = z.infer<typeof PlayerSchema>;
 
-export const RedisPlayerSchema = PlayerSchema.omit({
-  dares: true,
-  ready: true,
-}).extend({
-  turns: z.number().int().nonnegative(),
-});
-
-export type RedisPlayer = z.infer<typeof RedisPlayerSchema>;
-
-export const PlayersSchema = PlayerSchema.array();
-
-export type Players = z.infer<typeof PlayersSchema>;
+export type Players = [string, Player][];
 
 export const GameOptionsSchema = z.object({
   hostId: PlayerIdSchema,
   interaction: INTERACTION,
   categories: CATEGORY.array(),
 });
+
+export const GameSyncSchema = z.object({
+  hostId: PlayerIdSchema,
+  darer: PlayerIdSchema.optional(),
+  daree: PlayerIdSchema.optional(),
+  currentDare: GameDareSchema.optional(),
+});
+
+export type GameSyncBase = z.infer<typeof GameSyncSchema>;
 
 export const ServerChatSchema = z.object({
   playerId: PlayerIdSchema,
@@ -110,7 +109,13 @@ export const ServerChatSchema = z.object({
 
 export type ServerChat = z.infer<typeof ServerChatSchema>;
 
-type NewDaree = { dareeId: string } | { error: string };
+type NewDaree = { dareeId: string; dareeDares: GameDare[] } | { error: string };
+type DareeResponse =
+  | { response: "accept" | "decline" }
+  | { response: "counter"; dareOwner: "darer" | "daree"; counter: GameDare };
+type DarerCounterResponse =
+  | { response: "accept" }
+  | { response: "decline"; soloDareSelected: GameDare };
 
 export interface ServerToClientEvents {
   noArg: () => void;
@@ -118,22 +123,49 @@ export interface ServerToClientEvents {
   withAck: (d: string, callback: (e: number) => void) => void;
 
   serverChat: (chat: ServerChat) => void;
-  syncGameState: ({
-    hostId,
-    players,
-    darer,
-    daree,
+  syncGameState: (state: GameSyncBase & { players: Players }) => void;
+  newPlayerJoined: (newPlayer: Player) => void;
+  PlayerLeft: (playerId: string) => void;
+  PlayerDisconnected: (playerId: string) => void;
+  playerReadinessUpdate: ({
+    playerId,
+    ready,
   }: {
-    hostId: string;
-    players: Players;
-    darer?: string;
-    daree?: string;
+    playerId: string;
+    ready: boolean;
   }) => void;
+  hostChange: (newHostId: string) => void;
+  newTurn: (darerId: string) => void;
+  spinning: () => void;
   dareeSelected: (daree: NewDaree) => void;
+  darerSelectedDare: ({
+    selectedDare,
+    darerPartneredDares,
+  }: {
+    selectedDare: GameDare;
+    darerPartneredDares: GameDare[];
+  }) => void;
+  dareeResponded: (response: DareeResponse) => void;
+  darerRespondedToCounter: (response: DarerCounterResponse) => void;
 }
 
 export interface ClientToServerEvents {
+  requestSync: () => void;
   chat: (message: string) => void;
+  transferHost: (newHostId: string) => void;
+  updateDares: (dares: GameDare[]) => void;
+  spin: () => void;
+  darerSelectDare: (dare: GameDare) => void;
+  dareeResponse: (
+    response: DareeResponse,
+    callback: (ack: string) => void
+  ) => void;
+  darerCounterResponse: (
+    response: DarerCounterResponse,
+    callback: (ack: string) => void
+  ) => void;
+  darerEndTurn: (callback: () => void) => void;
+  dareeEndTurn: (callback: () => void) => void;
 }
 
 export interface InterServerEvents {

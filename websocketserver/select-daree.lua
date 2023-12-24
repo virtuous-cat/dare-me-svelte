@@ -10,8 +10,12 @@ if total_ready < 1 then
 end
 local darer = redis.call("HGET", game_hash_key, "darer")
 local turns = tonumber(redis.call("HGET", game_hash_key, "turns"))
-if turns == 0 then
-  redis.call("ZREM", ready_subset_key, darer)
+local total_players = tonumber(redis.call("ZCARD", turns_key))
+if turns <= 1 or total_players <= 3 then
+  local removed = redis.call("ZREM", ready_subset_key, darer)
+  if total_ready - removed < 1 then
+    return nil
+  end
   return redis.call("ZRANDMEMBER", ready_subset_key)
 end 
 local prev_daree = redis.call("HGET", game_hash_key, "previousDaree")
@@ -26,7 +30,6 @@ end
 if turns < 3 or total_ready - removed == 1 then
   return redis.call("ZRANDMEMBER", ready_subset_key)
 end
-local total_players = tonumber(redic.call("ZCARD", turns_key))
 local average_turns = math.ceil(turns / total_players)
 if average_turns <= 2 then
   redis.call("ZRANGESTORE", turns_subset_key, turns_key, 0, 2, BYSCORE)

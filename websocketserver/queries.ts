@@ -1,5 +1,6 @@
-import Redis, { Callback, Result } from "ioredis";
-import { error } from "node:console";
+import { GameDareSchema } from "$lib/db.types";
+import { GameSyncSchema, PlayerSchema, type Players } from "$lib/game.types";
+import Redis, { type Callback, type Result } from "ioredis";
 
 const url = process.env.REDIS_URL;
 
@@ -16,6 +17,9 @@ redis.on("error", function (error) {
 
 // Game State
 // game:[code] Hash { turn, darer, daree, previousDaree, hostId, interaction, categories }
+
+// Current Dare
+// game:[code]:current-dare Hash GameDare
 
 // Added Dares
 // game:[code]:dares Set of dareIds
@@ -50,8 +54,12 @@ redis.defineCommand("selectDaree", {
   end
   local darer = redis.call("HGET", game_hash_key, "darer")
   local turns = tonumber(redis.call("HGET", game_hash_key, "turns"))
-  if turns == 0 then
-    redis.call("ZREM", ready_subset_key, darer)
+  local total_players = tonumber(redis.call("ZCARD", turns_key))
+  if turns == 0 or total_players <= 3 then
+    local removed = redis.call("ZREM", ready_subset_key, darer)
+    if total_ready - removed < 1 then
+      return nil
+    end
     return redis.call("ZRANDMEMBER", ready_subset_key)
   end 
   local prev_daree = redis.call("HGET", game_hash_key, "previousDaree")
@@ -66,7 +74,6 @@ redis.defineCommand("selectDaree", {
   if turns < 3 or total_ready - removed == 1 then
     return redis.call("ZRANDMEMBER", ready_subset_key)
   end
-  local total_players = tonumber(redic.call("ZCARD", turns_key))
   local average_turns = math.ceil(turns / total_players)
   if average_turns <= 2 then
     redis.call("ZRANGESTORE", turns_subset_key, turns_key, 0, 2, BYSCORE)
@@ -111,6 +118,55 @@ export const getNewDaree = async (gameRoom: string) => {
       }
     }
     return "Players are not ready.";
+  } catch (error) {
+    console.error(error);
+    return "An error occurred, please try again.";
+  }
+};
+
+export const getFullGameState = async (gameRoom: string) => {
+  try {
+    const gameState = await redis.hgetall(`game:${gameRoom}`);
+    const baseState = GameSyncSchema.parse(gameState);
+    const playerList = await redis.lrange(`game:${gameRoom}:Players`, 0, -1);
+    const pipeline = redis.pipeline();
+    playerList.forEach((playerId) => {
+      pipeline.hgetall(`game:${gameRoom}:Player:${playerId}`);
+    });
+    const results = await pipeline.exec();
+    if (!results) {
+      throw new Error("no results from pipeline");
+    }
+    const players: Players = results.map((errResultArray) => {
+      if (errResultArray[0]) {
+        throw errResultArray[0];
+      }
+      const player = PlayerSchema.parse(errResultArray[1]);
+      return [player.playerId, player];
+    });
+    return { ...baseState, players };
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+export const getPlayerDares = async ({
+  playerId,
+  gameRoom,
+}: {
+  playerId: string;
+  gameRoom: string;
+}) => {
+  try {
+    const rawDares = await redis.hget(
+      `game:${gameRoom}:Player:${playerId}`,
+      "dares"
+    );
+    if (!rawDares) {
+      throw new Error("No dares found for player");
+    }
+    const dares = GameDareSchema.array().parse(JSON.parse(rawDares));
+    return dares;
   } catch (error) {
     console.error(error);
     return "An error occurred, please try again.";

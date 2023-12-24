@@ -13,6 +13,7 @@ import {
   GameCodeValidator,
   PlayerNameValidator,
 } from "../src/lib/game.types.js";
+import { getFullGameState, getNewDaree, getPlayerDares } from "./queries.js";
 
 process.env.REDIS_URL;
 
@@ -78,9 +79,42 @@ io.on("connection", (socket) => {
 
   if (!socket.recovered) {
     socket.join([gameRoom, playerId]);
-
-    socket.emit("syncGameState", { players: [], hostId: "" });
   }
+
+  socket.to(gameRoom).emit("newPlayerJoined", {
+    playerId,
+    playerName,
+    ready: false,
+  });
+
+  socket.on("requestSync", async () => {
+    for (let tries = 0; tries <= 10; tries++) {
+      const state = await getFullGameState(gameRoom);
+      if (state) {
+        socket.emit("syncGameState", state);
+        return;
+      }
+    }
+  });
+
+  socket.on("spin", async () => {
+    socket.to(gameRoom).emit("spinning");
+    const daree = await getNewDaree(gameRoom);
+    const parsedDaree = PlayerIdSchema.safeParse(daree);
+    if (!parsedDaree.success) {
+      io.to(gameRoom).emit("dareeSelected", { error: daree });
+      return;
+    }
+    const dareeDares = await getPlayerDares({ playerId: daree, gameRoom });
+    if ("string" === typeof dareeDares) {
+      io.to(gameRoom).emit("dareeSelected", { error: dareeDares });
+      return;
+    }
+    io.to(gameRoom).emit("dareeSelected", {
+      dareeId: parsedDaree.data,
+      dareeDares,
+    });
+  });
 
   socket.on("chat", (message) => {
     io.to(gameRoom).emit("serverChat", {
