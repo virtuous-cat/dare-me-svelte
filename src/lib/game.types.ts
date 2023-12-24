@@ -110,6 +110,8 @@ export const ServerChatSchema = z.object({
 
 export type ServerChat = z.infer<typeof ServerChatSchema>;
 
+type NewDaree = { dareeId: string } | { error: string };
+
 export interface ServerToClientEvents {
   noArg: () => void;
   basicEmit: (a: number, b: string, c: Buffer) => void;
@@ -117,14 +119,17 @@ export interface ServerToClientEvents {
 
   serverChat: (chat: ServerChat) => void;
   syncGameState: ({
+    hostId,
     players,
     darer,
     daree,
   }: {
+    hostId: string;
     players: Players;
     darer?: string;
     daree?: string;
   }) => void;
+  dareeSelected: (daree: NewDaree) => void;
 }
 
 export interface ClientToServerEvents {

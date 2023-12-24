@@ -79,7 +79,7 @@ io.on("connection", (socket) => {
   if (!socket.recovered) {
     socket.join([gameRoom, playerId]);
 
-    socket.emit("syncGameState", { players: [] });
+    socket.emit("syncGameState", { players: [], hostId: "" });
   }
 
   socket.on("chat", (message) => {
