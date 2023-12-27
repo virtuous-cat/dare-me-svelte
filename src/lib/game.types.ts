@@ -127,6 +127,7 @@ export interface ServerToClientEvents {
   newPlayerJoined: (newPlayer: Player) => void;
   PlayerLeft: (playerId: string) => void;
   PlayerDisconnected: (playerId: string) => void;
+  PlayerKicked: (playerId: string) => void;
   playerReadinessUpdate: ({
     playerId,
     ready,
@@ -135,6 +136,7 @@ export interface ServerToClientEvents {
     ready: boolean;
   }) => void;
   hostChange: (newHostId: string) => void;
+  serverError: () => void;
   newTurn: (darerId: string) => void;
   spinning: () => void;
   dareeSelected: (daree: NewDaree) => void;
@@ -150,7 +152,18 @@ export interface ServerToClientEvents {
 }
 
 export interface ClientToServerEvents {
-  requestSync: () => void;
+  requestSync: (
+    callback: (state: GameSyncBase & { players: Players }) => void
+  ) => void;
+  checkDisco: (
+    callback: ({
+      wasDisco,
+      savedDareIds,
+    }: {
+      wasDisco: boolean;
+      savedDareIds?: string[];
+    }) => void
+  ) => void;
   chat: (message: string) => void;
   transferHost: (newHostId: string) => void;
   updateDares: (dares: GameDare[]) => void;

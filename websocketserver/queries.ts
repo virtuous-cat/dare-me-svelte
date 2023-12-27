@@ -1,5 +1,6 @@
-import { GameDareSchema } from "$lib/db.types";
+import { GameDareSchema, type GameDare } from "$lib/db.types";
 import { GameSyncSchema, PlayerSchema, type Players } from "$lib/game.types";
+import { DEFAULT_EXPIRE } from "$lib/server/redis";
 import Redis, { type Callback, type Result } from "ioredis";
 
 const url = process.env.REDIS_URL;
@@ -38,6 +39,9 @@ redis.on("error", function (error) {
 
 // Kicked Players
 // game:[code]:kicked Set of playerIds
+
+// Disconnected Players
+// game:[code]:disco Set of playerIds
 
 // TODO: Figure out calling script from external file
 redis.defineCommand("selectDaree", {
@@ -128,10 +132,10 @@ export const getFullGameState = async (gameRoom: string) => {
   try {
     const gameState = await redis.hgetall(`game:${gameRoom}`);
     const baseState = GameSyncSchema.parse(gameState);
-    const playerList = await redis.lrange(`game:${gameRoom}:Players`, 0, -1);
+    const playerList = await redis.lrange(`game:${gameRoom}:players`, 0, -1);
     const pipeline = redis.pipeline();
     playerList.forEach((playerId) => {
-      pipeline.hgetall(`game:${gameRoom}:Player:${playerId}`);
+      pipeline.hgetall(`game:${gameRoom}:player:${playerId}`);
     });
     const results = await pipeline.exec();
     if (!results) {
@@ -159,7 +163,7 @@ export const getPlayerDares = async ({
 }) => {
   try {
     const rawDares = await redis.hget(
-      `game:${gameRoom}:Player:${playerId}`,
+      `game:${gameRoom}:player:${playerId}`,
       "dares"
     );
     if (!rawDares) {
@@ -170,5 +174,173 @@ export const getPlayerDares = async ({
   } catch (error) {
     console.error(error);
     return "An error occurred, please try again.";
+  }
+};
+
+export const addNewPlayer = async ({
+  playerName,
+  playerId,
+  gameRoom,
+}: {
+  playerName: string;
+  playerId: string;
+  gameRoom: string;
+}) => {
+  try {
+    const player = await redis
+      .multi()
+      .hset(`game:${gameRoom}:player:${playerId}`, {
+        playerId,
+        playerName,
+      })
+      .expire(`game:${gameRoom}:player:${playerId}`, DEFAULT_EXPIRE)
+      .zadd(`game:${gameRoom}:ready`, 0, playerId)
+      .zadd(`game:${gameRoom}:turns`, "NX", 0, playerId)
+      .exec();
+    if (!player || !player[0][1]) {
+      throw new Error("Failed to save player in redis");
+    }
+    return;
+  } catch (error) {
+    console.error(error);
+    return "ERROR";
+  }
+};
+
+export const updateReady = async ({
+  dares,
+  playerId,
+  gameRoom,
+}: {
+  dares: GameDare[];
+  playerId: string;
+  gameRoom: string;
+}) => {
+  if (
+    dares.length >= 3 &&
+    dares.filter(({ partnered }) => !partnered).length >= 2
+  ) {
+    const ready = await redis.zadd(`game:${gameRoom}:ready`, 1, playerId);
+    return true;
+  }
+  const ready = await redis.zadd(`game:${gameRoom}:ready`, 0, playerId);
+  return false;
+};
+
+export const updateDares = async ({
+  dares,
+  playerId,
+  gameRoom,
+}: {
+  dares: GameDare[];
+  playerId: string;
+  gameRoom: string;
+}) => {
+  try {
+    const dbDares = JSON.stringify(dares);
+    const saved = await redis.hset(
+      `game:${gameRoom}:player:${playerId}`,
+      "dares",
+      dbDares
+    );
+    if (!saved) {
+      throw new Error("Failed to save dares in redis");
+    }
+    return updateReady({ dares, playerId, gameRoom });
+  } catch (error) {
+    console.error(error);
+    return "An error occurred, please try again.";
+  }
+};
+
+export const checkKicked = async ({
+  playerName,
+  gameRoom,
+}: {
+  playerName: string;
+  gameRoom: string;
+}) => {
+  const wasKicked = await redis.sismember(
+    `game:${gameRoom}:kicked`,
+    playerName
+  );
+  return wasKicked === 1;
+};
+
+export const checkDisco = async ({
+  playerId,
+  gameRoom,
+}: {
+  playerId: string;
+  gameRoom: string;
+}) => {
+  const wasDisco = await redis.sismember(`game:${gameRoom}:disco`, playerId);
+  return wasDisco === 1;
+};
+
+export const unDisco = async ({
+  playerId,
+  gameRoom,
+}: {
+  playerId: string;
+  gameRoom: string;
+}) => {
+  try {
+    const moved = await redis.smove(
+      `game:${gameRoom}:disco`,
+      `game:${gameRoom}:players`,
+      playerId
+    );
+    if (moved === 1) {
+      return;
+    }
+    const exists = await redis.sismember(`game:${gameRoom}:players`, playerId);
+    if (exists === 1) {
+      return;
+    }
+    const lastTry = await redis.sadd(`game:${gameRoom}:players`, playerId);
+    if (lastTry !== 1) {
+      throw new Error(
+        "Failed to move disconnected player back to players list"
+      );
+    }
+    return;
+  } catch (error) {
+    console.error(error);
+    return "ERROR";
+  }
+};
+
+export const setDisco = async ({
+  playerId,
+  gameRoom,
+}: {
+  playerId: string;
+  gameRoom: string;
+}) => {
+  // remove from ready and players, leave player entry and turns
+  await redis.smove(
+    `game:${gameRoom}:players`,
+    `game:${gameRoom}:disco`,
+    playerId
+  );
+  await redis.zrem(`game:${gameRoom}:ready`, playerId);
+};
+
+export const expireGameKeys = async (gameRoom: string) => {
+  try {
+    await redis
+      .pipeline()
+      .expire(`game:${gameRoom}`, DEFAULT_EXPIRE)
+      .expire(`game:${gameRoom}:players`, DEFAULT_EXPIRE)
+      .expire(`game:${gameRoom}:ready`, DEFAULT_EXPIRE)
+      .expire(`game:${gameRoom}:turns`, DEFAULT_EXPIRE)
+      .expire(`game:${gameRoom}:disco`, DEFAULT_EXPIRE)
+      .expire(`game:${gameRoom}:current-dare`, DEFAULT_EXPIRE)
+      .expire(`game:${gameRoom}:kicked`, DEFAULT_EXPIRE)
+      .expire(`game:${gameRoom}:dares`, DEFAULT_EXPIRE)
+      .exec();
+  } catch (error) {
+    console.error(error);
   }
 };

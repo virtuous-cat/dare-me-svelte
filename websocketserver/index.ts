@@ -13,7 +13,13 @@ import {
   GameCodeValidator,
   PlayerNameValidator,
 } from "../src/lib/game.types.js";
-import { getFullGameState, getNewDaree, getPlayerDares } from "./queries.js";
+import {
+  addNewPlayer,
+  checkKicked,
+  getFullGameState,
+  getNewDaree,
+  getPlayerDares,
+} from "./queries.js";
 
 process.env.REDIS_URL;
 
@@ -77,9 +83,25 @@ io.on("connection", (socket) => {
     return;
   }
 
+  // TODO: IP checking.
+  async () => {
+    const kicked = await checkKicked({ playerName, gameRoom });
+    if (kicked) {
+      socket.disconnect(true);
+      return;
+    }
+  };
+
   if (!socket.recovered) {
     socket.join([gameRoom, playerId]);
   }
+
+  (async () => {
+    const savedPlayer = await addNewPlayer({ playerId, playerName, gameRoom });
+    if (savedPlayer === "ERROR") {
+      socket.emit("serverError");
+    }
+  })();
 
   socket.to(gameRoom).emit("newPlayerJoined", {
     playerId,
@@ -95,6 +117,7 @@ io.on("connection", (socket) => {
         return;
       }
     }
+    socket.emit("serverError");
   });
 
   socket.on("spin", async () => {
@@ -123,6 +146,8 @@ io.on("connection", (socket) => {
       playerName,
     });
   });
+
+  socket.on("disconnecting", () => {});
 });
 
 app.get("/healthcheck", (req, res) => {

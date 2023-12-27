@@ -8,6 +8,6 @@ redis.on("error", function (error) {
   console.dir(error);
 });
 
-export const DEFAULT_EXPIRE = 21600; // 6 hours
+export const DEFAULT_EXPIRE = 43200; // 12 hours
 
 export default redis;

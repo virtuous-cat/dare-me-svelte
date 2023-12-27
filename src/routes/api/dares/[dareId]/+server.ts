@@ -11,7 +11,32 @@ import type { RequestHandler } from "./$types.js";
 import prisma from "$lib/server/prisma.js";
 import { Prisma } from "@prisma/client";
 
-export const GET = (async ({ params }) => {
+export const GET = (async ({ params, url }) => {
+  if (params.dareId === "multi") {
+    const dareIds = url.searchParams.getAll("id");
+
+    if (!dareIds.length) {
+      throw error(400, { message: "No dare ids requested." });
+    }
+
+    const dares = await prisma.dare.findMany({
+      where: {
+        dareId: { in: dareIds },
+      },
+      include: {
+        tags: true,
+        children: {
+          include: { tags: true },
+        },
+      },
+    });
+
+    if (!dares) {
+      throw error(500, { message: "Error retrieving dares." });
+    }
+
+    return json(dares);
+  }
   const dare = await prisma.dare.findUnique({
     where: {
       dareId: params.dareId,

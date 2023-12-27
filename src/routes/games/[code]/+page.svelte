@@ -45,6 +45,7 @@
   import Clipboard from "phosphor-svelte/lib/Clipboard";
   import PencilSimpleLine from "phosphor-svelte/lib/PencilSimpleLine";
   import Plus from "phosphor-svelte/lib/Plus";
+  import { response } from "express";
 
   let clientPlayerName: string;
   let clientPlayerId: string;
@@ -61,7 +62,6 @@
   }
 
   onMount(() => {
-    daresModal.showModal();
     clientPlayerName = sessionStorage.getItem("playerName") ?? "";
     clientPlayerId = sessionStorage.getItem("playerId") ?? "";
     gameCode = sessionStorage.getItem("gameCode") ?? "";
@@ -79,7 +79,7 @@
 
     return () => {
       socket.disconnect();
-      socket.off("connect_error");
+      socket.off();
     };
   });
 
@@ -112,7 +112,8 @@
   let gameLog: { text: string; dareText?: string }[] = [];
   let currentGameActivity: string = "Waiting for players to choose dares.";
   let currentDare: GameDare;
-  let showCurrentDare: boolean = true;
+  let showCurrentDare: boolean = false;
+  let recordInGameLog: boolean = false;
   let darerTurnStage: DarerTurnStage = darerTurnStages.SPIN;
   let spinning: boolean = false;
   let dareeDares: GameDare[] = [];
@@ -179,6 +180,19 @@
     }
   });
 
+  function updateGameLog() {
+    if (recordInGameLog) {
+      gameLog = [
+        ...gameLog,
+        {
+          text: currentGameActivity,
+          dareText: showCurrentDare ? currentDare.dareText : undefined,
+        },
+      ];
+    }
+    recordInGameLog = false;
+  }
+
   function sendChat() {
     pendingChats = [...pendingChats, outgoingChat];
     socket.emit("chat", outgoingChat);
@@ -200,6 +214,27 @@
   });
 
   socket.on("connect", () => {
+    if (!socket.recovered || !players || !host) {
+      socket.timeout(5000).emit("requestSync", (err, state) => {
+        if (err) {
+          goto("/?message=gameerror");
+          return;
+        }
+        if (state.darer) {
+          currentGameActivity = `It is ${state.darer}'s turn${
+            state.daree ? " to dare " + state.daree : ""
+          }.`;
+        }
+        if (state.currentDare) {
+          currentDare = state.currentDare;
+          showCurrentDare = true;
+        }
+        host = state.hostId;
+        darer = state.darer ?? "";
+        daree = state.daree ?? "";
+        players = new Map(state.players);
+      });
+    }
     if (clientPartneredDares.length || clientSoloDares.length) {
       const gameDares = [...clientSoloDares, ...clientPartneredDares].map(
         (dare) => {
@@ -212,29 +247,46 @@
         }
       );
       socket.emit("updateDares", gameDares);
-    }
-    if (!socket.recovered) {
-      socket.emit("requestSync");
+    } else {
+      socket.emit("checkDisco", async (response) => {
+        if (!response.wasDisco || !response.savedDareIds?.length) {
+          daresModal.showModal();
+          return;
+        }
+        const searchParams = new URLSearchParams();
+        response.savedDareIds.forEach((id) => {
+          searchParams.append("id", id);
+        });
+        const dbDares = await fetch(`/api/dares?${searchParams.toString()}`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+        });
+        const parsedDares = DareWithChildrenSchema.array().safeParse(dbDares);
+        if (!parsedDares.success || !parsedDares.data.length) {
+          daresModal.showModal();
+          return;
+        }
+        clientPartneredDares = parsedDares.data.filter(
+          ({ partnered }) => partnered
+        );
+        clientSoloDares = parsedDares.data.filter(
+          ({ partnered }) => !partnered
+        );
+      });
     }
   });
 
-  socket.on("syncGameState", (state) => {
-    if (state.darer) {
-      currentGameActivity = `It is currently ${state.darer}'s turn${
-        state.daree ? " to dare " + state.daree : ""
-      }.`;
-    }
-    if (state.currentDare) {
-      currentDare = state.currentDare;
-    }
-    host = state.hostId;
-    darer = state.darer ?? "";
-    daree = state.daree ?? "";
-    players = new Map(state.players);
+  socket.on("serverError", () => {
+    document.location.reload();
   });
 
   socket.on("spinning", () => {
+    updateGameLog();
     currentGameActivity = `${players.get(darer)?.playerName} is spinning.`;
+    showCurrentDare = false;
   });
 
   socket.on("dareeSelected", (newDaree) => {
@@ -245,9 +297,11 @@
     }
     daree = newDaree.dareeId;
     dareeDares = newDaree.dareeDares;
+    updateGameLog();
     currentGameActivity = `${players.get(darer)?.playerName} has landed on ${
       players.get(newDaree.dareeId)?.playerName
     }!`;
+    showCurrentDare = false;
     if (clientPlayerId === newDaree.dareeId && daresModal.open) {
       interruptModal.showModal();
     }
@@ -255,9 +309,11 @@
       if (clientIsDarer) {
         darerTurnStage = darerTurnStages.SELECT;
       }
+      updateGameLog();
       currentGameActivity = `${
         players.get(darer)?.playerName
       } is selecting a dare for ${players.get(newDaree.dareeId)?.playerName}.`;
+      showCurrentDare = false;
     }, 1000);
   });
 
