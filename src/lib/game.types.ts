@@ -123,11 +123,10 @@ export interface ServerToClientEvents {
   withAck: (d: string, callback: (e: number) => void) => void;
 
   serverChat: (chat: ServerChat) => void;
-  syncGameState: (state: GameSyncBase & { players: Players }) => void;
   newPlayerJoined: (newPlayer: Player) => void;
-  PlayerLeft: (playerId: string) => void;
-  PlayerDisconnected: (playerId: string) => void;
-  PlayerKicked: (playerId: string) => void;
+  playerLeft: (playerId: string) => void;
+  playerDisconnected: (playerId: string) => void;
+  playerKicked: (playerId: string) => void;
   playerReadinessUpdate: ({
     playerId,
     ready,
@@ -166,6 +165,13 @@ export interface ClientToServerEvents {
   ) => void;
   chat: (message: string) => void;
   transferHost: (newHostId: string) => void;
+  kickPlayer: ({
+    playerToKick,
+    kicker,
+  }: {
+    playerToKick: string;
+    kicker: string;
+  }) => void;
   updateDares: (dares: GameDare[]) => void;
   spin: () => void;
   darerSelectDare: (dare: GameDare) => void;

@@ -15,10 +15,17 @@ import {
 } from "../src/lib/game.types.js";
 import {
   addNewPlayer,
+  checkDisco,
   checkKicked,
+  expireGameKeys,
   getFullGameState,
+  getHostId,
   getNewDaree,
   getPlayerDares,
+  setDisco,
+  unDisco,
+  updateDares,
+  updateReady,
 } from "./queries.js";
 
 process.env.REDIS_URL;
@@ -109,15 +116,39 @@ io.on("connection", (socket) => {
     ready: false,
   });
 
-  socket.on("requestSync", async () => {
+  socket.on("requestSync", async (callback) => {
     for (let tries = 0; tries <= 10; tries++) {
       const state = await getFullGameState(gameRoom);
       if (state) {
-        socket.emit("syncGameState", state);
+        callback(state);
         return;
       }
     }
     socket.emit("serverError");
+  });
+
+  socket.on("checkDisco", async (callback) => {
+    const wasDisco = await checkDisco({ playerId, gameRoom });
+    if (!wasDisco) {
+      callback({ wasDisco });
+      return;
+    }
+    const restoredPlayer = unDisco({ playerId, gameRoom });
+    if (!restoredPlayer) {
+      socket.emit("serverError");
+    }
+    const savedDares = await getPlayerDares({ playerId, gameRoom });
+    if (typeof savedDares === "string") {
+      callback({ wasDisco });
+      console.error("Unable to restore dares on reconnect.");
+      return;
+    }
+    callback({
+      wasDisco,
+      savedDareIds: savedDares.map(({ dareId }) => dareId),
+    });
+    const ready = await updateReady({ dares: savedDares, playerId, gameRoom });
+    io.to(gameRoom).emit("playerReadinessUpdate", { playerId, ready });
   });
 
   socket.on("spin", async () => {
@@ -147,7 +178,37 @@ io.on("connection", (socket) => {
     });
   });
 
-  socket.on("disconnecting", () => {});
+  socket.on("kickPlayer", async ({ playerToKick, kicker }) => {
+    const hostId = await getHostId(gameRoom);
+    if (hostId !== kicker) {
+      return;
+    }
+    io.to(gameRoom).emit("playerKicked", playerToKick);
+    if (playerToKick === playerId) {
+      socket.disconnect(true);
+    }
+  });
+
+  socket.on("disconnect", async (reason) => {
+    try {
+      await setDisco({ playerId, gameRoom });
+      await expireGameKeys(gameRoom);
+    } catch (error) {
+      console.error(error);
+      console.error("Failed to set player as disco");
+    }
+    switch (reason) {
+      case "server namespace disconnect":
+        break;
+      case "client namespace disconnect":
+        io.to(gameRoom).emit("playerLeft", playerId);
+        break;
+
+      default:
+        io.to(gameRoom).emit("playerDisconnected", playerId);
+        break;
+    }
+  });
 });
 
 app.get("/healthcheck", (req, res) => {

@@ -213,6 +213,10 @@
     }
   });
 
+  socket.on("serverError", () => {
+    document.location.reload();
+  });
+
   socket.on("connect", () => {
     if (!socket.recovered || !players || !host) {
       socket.timeout(5000).emit("requestSync", (err, state) => {
@@ -221,9 +225,11 @@
           return;
         }
         if (state.darer) {
+          updateGameLog();
           currentGameActivity = `It is ${state.darer}'s turn${
             state.daree ? " to dare " + state.daree : ""
           }.`;
+          recordInGameLog = true;
         }
         if (state.currentDare) {
           currentDare = state.currentDare;
@@ -279,8 +285,87 @@
     }
   });
 
-  socket.on("serverError", () => {
-    document.location.reload();
+  socket.on("playerReadinessUpdate", (player) => {
+    const playerToUpdate = players.get(player.playerId);
+    if (!playerToUpdate) {
+      socket.timeout(5000).emit("requestSync", (err, state) => {
+        if (err) {
+          goto("/?message=gameerror");
+          return;
+        }
+        if (state.darer && state.darer !== darer) {
+          updateGameLog();
+          currentGameActivity = `It is ${state.darer}'s turn${
+            state.daree ? " to dare " + state.daree : ""
+          }.`;
+          recordInGameLog = true;
+        }
+        if (
+          state.currentDare &&
+          state.currentDare?.dareId !== currentDare.dareId
+        ) {
+          currentDare = state.currentDare;
+          showCurrentDare = true;
+        }
+        host = state.hostId;
+        darer = state.darer ?? "";
+        daree = state.daree ?? "";
+        players = new Map(state.players);
+        const playerToNowUpdate = players.get(player.playerId);
+        if (!playerToNowUpdate) {
+          document.location.reload();
+          return;
+        }
+
+        players.set(player.playerId, {
+          ...playerToNowUpdate,
+          ready: player.ready,
+        });
+        players = players;
+      });
+      return;
+    }
+    players.set(player.playerId, { ...playerToUpdate, ready: player.ready });
+    players = players;
+  });
+
+  socket.on("newPlayerJoined", (player) => {
+    players.set(player.playerId, player);
+    players = players;
+    gameLog = [...gameLog, { text: `${player.playerName} joined the game!` }];
+  });
+
+  socket.on("playerDisconnected", (player) => {
+    gameLog = [
+      ...gameLog,
+      {
+        text: `${
+          players.get(player)?.playerName
+        } was disconnected from the game.`,
+      },
+    ];
+    players.delete(player);
+    players = players;
+  });
+  socket.on("playerLeft", (player) => {
+    gameLog = [
+      ...gameLog,
+      {
+        text: `${players.get(player)?.playerName} left the game.`,
+      },
+    ];
+    players.delete(player);
+    players = players;
+  });
+  socket.on("playerKicked", (player) => {
+    gameLog = [
+      ...gameLog,
+      {
+        text: `${players.get(player)?.playerName} was kicked from the game.`,
+      },
+    ];
+    players.delete(player);
+    players = players;
   });
 
   socket.on("spinning", () => {

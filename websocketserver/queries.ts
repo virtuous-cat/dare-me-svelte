@@ -154,6 +154,14 @@ export const getFullGameState = async (gameRoom: string) => {
   }
 };
 
+export const getHostId = async (gameRoom: string) => {
+  try {
+    return await redis.hget(`game:${gameRoom}`, "hostId");
+  } catch (error) {
+    console.error(error);
+  }
+};
+
 export const getPlayerDares = async ({
   playerId,
   gameRoom,
@@ -292,11 +300,11 @@ export const unDisco = async ({
       playerId
     );
     if (moved === 1) {
-      return;
+      return true;
     }
     const exists = await redis.sismember(`game:${gameRoom}:players`, playerId);
     if (exists === 1) {
-      return;
+      return true;
     }
     const lastTry = await redis.sadd(`game:${gameRoom}:players`, playerId);
     if (lastTry !== 1) {
@@ -304,10 +312,10 @@ export const unDisco = async ({
         "Failed to move disconnected player back to players list"
       );
     }
-    return;
+    return true;
   } catch (error) {
     console.error(error);
-    return "ERROR";
+    return false;
   }
 };
 
