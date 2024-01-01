@@ -4,4 +4,4 @@ A party game for adults with an emphasis on consent and negotiation. All the fun
 
 ## Technology
 
-This is a Sveltekit app
+Build with Svelte, Sveltekit, Socket.IO, Redis, Prisma, Zod and PostgreSQL.
