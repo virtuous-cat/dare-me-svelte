@@ -22,7 +22,10 @@ import {
   getHostId,
   getNewDaree,
   getPlayerDares,
+  setAutoNextHost,
   setDisco,
+  setKicked,
+  setNewHost,
   unDisco,
   updateDares,
   updateReady,
@@ -178,14 +181,36 @@ io.on("connection", (socket) => {
     });
   });
 
-  socket.on("kickPlayer", async ({ playerToKick, kicker }) => {
-    const hostId = await getHostId(gameRoom);
-    if (hostId !== kicker) {
-      return;
+  socket.on("transferHost", async (newHostId) => {
+    try {
+      const hostId = await getHostId(gameRoom);
+      if (hostId !== playerId) {
+        return;
+      }
+      const transferred = await setNewHost({ playerId: newHostId, gameRoom });
+      if (!transferred) {
+        throw new Error("Failed to set new host in redis");
+      }
+      io.to(gameRoom).emit("hostChange", newHostId);
+    } catch (error) {
+      console.error(error);
     }
-    io.to(gameRoom).emit("playerKicked", playerToKick);
-    if (playerToKick === playerId) {
-      socket.disconnect(true);
+  });
+
+  socket.on("kickPlayer", async ({ playerToKick }) => {
+    try {
+      const hostId = await getHostId(gameRoom);
+      if (hostId !== playerId) {
+        return;
+      }
+      const kicked = await setKicked({ playerId: playerToKick, gameRoom });
+      if (!kicked) {
+        throw new Error("Failed to set kicked in redis");
+      }
+      io.to(gameRoom).emit("playerKicked", playerToKick);
+      io.to(playerToKick).disconnectSockets(true);
+    } catch (error) {
+      console.error(error);
     }
   });
 
@@ -207,6 +232,10 @@ io.on("connection", (socket) => {
       default:
         io.to(gameRoom).emit("playerDisconnected", playerId);
         break;
+    }
+    const nextHost = await setAutoNextHost({ playerId, gameRoom });
+    if (nextHost) {
+      io.to(gameRoom).emit("hostChange", nextHost);
     }
   });
 });

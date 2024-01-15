@@ -38,6 +38,9 @@
     case "gameerror":
       alert = "Error initializing game, please try again";
       break;
+    case "Kicked":
+      alert = "You were kicked from the game.";
+      break;
     default:
       alert = "";
   }

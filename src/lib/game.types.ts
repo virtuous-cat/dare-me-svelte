@@ -165,13 +165,7 @@ export interface ClientToServerEvents {
   ) => void;
   chat: (message: string) => void;
   transferHost: (newHostId: string) => void;
-  kickPlayer: ({
-    playerToKick,
-    kicker,
-  }: {
-    playerToKick: string;
-    kicker: string;
-  }) => void;
+  kickPlayer: ({ playerToKick }: { playerToKick: string }) => void;
   updateDares: (dares: GameDare[]) => void;
   spin: () => void;
   darerSelectDare: (dare: GameDare) => void;

@@ -358,6 +358,10 @@
     players = players;
   });
   socket.on("playerKicked", (player) => {
+    if (player === clientPlayerId) {
+      wipeStorage();
+      goto("/?message=kicked");
+    }
     gameLog = [
       ...gameLog,
       {
@@ -366,6 +370,16 @@
     ];
     players.delete(player);
     players = players;
+  });
+
+  socket.on("hostChange", (newHostId) => {
+    host = newHostId;
+    gameLog = [
+      ...gameLog,
+      {
+        text: `${players.get(newHostId)?.playerName} is now the host.`,
+      },
+    ];
   });
 
   socket.on("spinning", () => {
@@ -573,8 +587,18 @@
                   </div>
                 {:else if host === clientPlayerId}
                   <div class="host-player-buttons">
-                    <Button>Make Host</Button>
-                    <!-- <Button>Kick</Button> -->
+                    <Button
+                      on:click={() => {
+                        socket.emit("transferHost", player.playerId);
+                      }}>Make Host</Button
+                    >
+                    <Button
+                      on:click={() => {
+                        socket.emit("kickPlayer", {
+                          playerToKick: player.playerId,
+                        });
+                      }}>Kick</Button
+                    >
                   </div>
                 {/if}
                 {#if player.playerId === darer}

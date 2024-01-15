@@ -162,6 +162,43 @@ export const getHostId = async (gameRoom: string) => {
   }
 };
 
+export const setNewHost = async ({
+  playerId,
+  gameRoom,
+}: {
+  playerId: string;
+  gameRoom: string;
+}) => {
+  try {
+    const hostSet = await redis.hset(`game:${gameRoom}`, "hostId", playerId);
+    return hostSet === 1;
+  } catch (error) {
+    console.error(error);
+    return false;
+  }
+};
+
+export const setAutoNextHost = async ({
+  playerId,
+  gameRoom,
+}: {
+  playerId: string;
+  gameRoom: string;
+}) => {
+  try {
+    const possibleHosts = await redis.lrange(`game:${gameRoom}:players`, 0, -1);
+    const nextHost = possibleHosts.find((id) => id !== playerId);
+    if (!nextHost) {
+      return null;
+    }
+    await setNewHost({ playerId: nextHost, gameRoom });
+    return nextHost;
+  } catch (error) {
+    console.error(error);
+    return null;
+  }
+};
+
 export const getPlayerDares = async ({
   playerId,
   gameRoom,
@@ -202,12 +239,18 @@ export const addNewPlayer = async ({
         playerName,
       })
       .expire(`game:${gameRoom}:player:${playerId}`, DEFAULT_EXPIRE)
+      .rpush(`game:${gameRoom}:players`, playerId)
       .zadd(`game:${gameRoom}:ready`, 0, playerId)
       .zadd(`game:${gameRoom}:turns`, "NX", 0, playerId)
       .exec();
-    if (!player || !player[0][1]) {
+    if (!player) {
       throw new Error("Failed to save player in redis");
     }
+    player.forEach((command) => {
+      if (command[0] !== null) {
+        throw command[0];
+      }
+    });
     return;
   } catch (error) {
     console.error(error);
@@ -294,20 +337,25 @@ export const unDisco = async ({
   gameRoom: string;
 }) => {
   try {
-    const moved = await redis.smove(
-      `game:${gameRoom}:disco`,
-      `game:${gameRoom}:players`,
-      playerId
-    );
-    if (moved === 1) {
+    const moved = await redis
+      .multi()
+      .srem(`game:${gameRoom}:disco`, playerId)
+      .rpushx(`game:${gameRoom}:players`, playerId)
+      .exec();
+    if (
+      moved &&
+      moved[0][1] === 1 &&
+      typeof moved[1][1] === "number" &&
+      moved[1][1] > 0
+    ) {
       return true;
     }
-    const exists = await redis.sismember(`game:${gameRoom}:players`, playerId);
-    if (exists === 1) {
+    const exists = await redis.lpos(`game:${gameRoom}:players`, playerId);
+    if (exists !== null) {
       return true;
     }
-    const lastTry = await redis.sadd(`game:${gameRoom}:players`, playerId);
-    if (lastTry !== 1) {
+    const lastTry = await redis.rpushx(`game:${gameRoom}:players`, playerId);
+    if (lastTry < 1) {
       throw new Error(
         "Failed to move disconnected player back to players list"
       );
@@ -326,13 +374,41 @@ export const setDisco = async ({
   playerId: string;
   gameRoom: string;
 }) => {
-  // remove from ready and players, leave player entry and turns
-  await redis.smove(
-    `game:${gameRoom}:players`,
-    `game:${gameRoom}:disco`,
-    playerId
-  );
-  await redis.zrem(`game:${gameRoom}:ready`, playerId);
+  try {
+    // remove from ready and players, leave player entry and turns so they are available if reconnect
+    const disco = await redis
+      .multi()
+      .lrem(`game:${gameRoom}:players`, 0, playerId)
+      .sadd(`game:${gameRoom}:disco`, playerId)
+      .zrem(`game:${gameRoom}:ready`, playerId)
+      .exec();
+
+    if (!disco) {
+      throw new Error("Failed to disco player in redis");
+    }
+    disco.forEach((command) => {
+      if (command[0] !== null) {
+        throw command[0];
+      }
+    });
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+export const setKicked = async ({
+  playerId,
+  gameRoom,
+}: {
+  playerId: string;
+  gameRoom: string;
+}) => {
+  try {
+    const kicked = await redis.sadd(`game:${gameRoom}:kicked`, playerId);
+    return kicked === 1;
+  } catch (error) {
+    console.log(error);
+  }
 };
 
 export const expireGameKeys = async (gameRoom: string) => {
