@@ -22,6 +22,8 @@ import {
   getHostId,
   getNewDaree,
   getPlayerDares,
+  getTurnNumber,
+  maybeStartGame,
   setAutoNextHost,
   setDisco,
   setKicked,
@@ -94,20 +96,24 @@ io.on("connection", (socket) => {
   }
 
   // TODO: IP checking.
-  async () => {
+  (async () => {
     const kicked = await checkKicked({ playerName, gameRoom });
     if (kicked) {
       socket.disconnect(true);
       return;
     }
-  };
+  })();
 
   if (!socket.recovered) {
     socket.join([gameRoom, playerId]);
   }
 
   (async () => {
-    const savedPlayer = await addNewPlayer({ playerId, playerName, gameRoom });
+    const savedPlayer = await addNewPlayer({
+      playerId,
+      playerName,
+      gameRoom,
+    });
     if (savedPlayer === "ERROR") {
       socket.emit("serverError");
     }
@@ -150,8 +156,38 @@ io.on("connection", (socket) => {
       wasDisco,
       savedDareIds: savedDares.map(({ dareId }) => dareId),
     });
-    const ready = await updateReady({ dares: savedDares, playerId, gameRoom });
+    const ready = await updateReady({
+      dares: savedDares,
+      playerId,
+      gameRoom,
+    });
     io.to(gameRoom).emit("playerReadinessUpdate", { playerId, ready });
+  });
+
+  socket.on("updateDares", async (playerDares) => {
+    const ready = await updateDares({
+      dares: playerDares,
+      playerId,
+      gameRoom,
+    });
+    if (typeof ready === "string") {
+      // TODO: handle client side
+      socket.emit("serverError");
+      return;
+    }
+    io.to(gameRoom).emit("playerReadinessUpdate", { playerId, ready });
+
+    const gameStarted = await getTurnNumber(gameRoom);
+    if (ready && !gameStarted) {
+      const firstDarer = await maybeStartGame({ gameRoom });
+      if (firstDarer) {
+        io.to(gameRoom).emit("newTurn", firstDarer);
+      }
+    }
+  });
+
+  socket.on("updateAddedDares", async (addedDareIds) => {
+    // TODO: define query
   });
 
   socket.on("spin", async () => {
@@ -187,7 +223,10 @@ io.on("connection", (socket) => {
       if (hostId !== playerId) {
         return;
       }
-      const transferred = await setNewHost({ playerId: newHostId, gameRoom });
+      const transferred = await setNewHost({
+        playerId: newHostId,
+        gameRoom,
+      });
       if (!transferred) {
         throw new Error("Failed to set new host in redis");
       }
@@ -203,7 +242,10 @@ io.on("connection", (socket) => {
       if (hostId !== playerId) {
         return;
       }
-      const kicked = await setKicked({ playerId: playerToKick, gameRoom });
+      const kicked = await setKicked({
+        playerId: playerToKick,
+        gameRoom,
+      });
       if (!kicked) {
         throw new Error("Failed to set kicked in redis");
       }
@@ -233,9 +275,12 @@ io.on("connection", (socket) => {
         io.to(gameRoom).emit("playerDisconnected", playerId);
         break;
     }
-    const nextHost = await setAutoNextHost({ playerId, gameRoom });
-    if (nextHost) {
-      io.to(gameRoom).emit("hostChange", nextHost);
+    const hostId = await getHostId(gameRoom);
+    if (hostId === playerId) {
+      const nextHost = await setAutoNextHost({ playerId, gameRoom });
+      if (nextHost) {
+        io.to(gameRoom).emit("hostChange", nextHost);
+      }
     }
   });
 });

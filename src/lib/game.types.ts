@@ -167,6 +167,7 @@ export interface ClientToServerEvents {
   transferHost: (newHostId: string) => void;
   kickPlayer: ({ playerToKick }: { playerToKick: string }) => void;
   updateDares: (dares: GameDare[]) => void;
+  updateAddedDares: (addDareIds: string[]) => void;
   spin: () => void;
   darerSelectDare: (dare: GameDare) => void;
   dareeResponse: (

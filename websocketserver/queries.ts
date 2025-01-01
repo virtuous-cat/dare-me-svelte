@@ -162,6 +162,14 @@ export const getHostId = async (gameRoom: string) => {
   }
 };
 
+export const getTurnNumber = async (gameRoom: string) => {
+  try {
+    return await redis.hget(`game:${gameRoom}`, "turn");
+  } catch (error) {
+    console.error(error);
+  }
+};
+
 export const setNewHost = async ({
   playerId,
   gameRoom,
@@ -301,6 +309,30 @@ export const updateDares = async ({
   } catch (error) {
     console.error(error);
     return "An error occurred, please try again.";
+  }
+};
+
+export const setNewTurn = async ({ gameRoom }: { gameRoom: string }) => {
+  try {
+    const turn = await redis.hincrby(`game:${gameRoom}`, "turn", 1);
+    const newDarer = await redis.lindex(`game:${gameRoom}:players`, turn - 1);
+    return newDarer;
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+export const maybeStartGame = async ({ gameRoom }: { gameRoom: string }) => {
+  try {
+    const playersLength = await redis.llen(`game:${gameRoom}:players`);
+    const readySize = await redis.zcount(`game:${gameRoom}:ready`, 1, 1);
+    if (playersLength === readySize) {
+      return await setNewTurn({ gameRoom });
+    } else {
+      return null;
+    }
+  } catch (error) {
+    console.error(error);
   }
 };
 

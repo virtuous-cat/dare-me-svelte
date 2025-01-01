@@ -325,7 +325,10 @@
       });
       return;
     }
-    players.set(player.playerId, { ...playerToUpdate, ready: player.ready });
+    players.set(player.playerId, {
+      ...playerToUpdate,
+      ready: player.ready,
+    });
     players = players;
   });
 
@@ -380,6 +383,18 @@
         text: `${players.get(newHostId)?.playerName} is now the host.`,
       },
     ];
+  });
+
+  socket.on("newTurn", (newDarerId) => {
+    updateGameLog();
+    darer = newDarerId;
+    daree = "";
+    currentGameActivity = `It's ${players.get(newDarerId)?.playerName} turn to spin!`;
+    showCurrentDare = false;
+
+    if (clientPlayerId === newDarerId && daresModal.open) {
+      interruptModal.showModal();
+    }
   });
 
   socket.on("spinning", () => {
@@ -454,7 +469,7 @@
     replaceParent?: boolean;
   })[] = [];
   let markNewIds: string[] = [];
-  let GameNewDareIds: string[] = [];
+  let gameNewDareIds: string[] = [];
 
   $: dares = [...data.dares];
 
@@ -606,7 +621,9 @@
                 {:else if player.playerId === daree}
                   <p><strong>DAREE</strong></p>
                 {:else}
-                  <div>{player.ready ? "ready" : "choosing dares..."}</div>
+                  <div>
+                    {player.ready ? "ready" : "choosing dares..."}
+                  </div>
                 {/if}
               </li>
             {:else}
@@ -673,10 +690,10 @@
                 </p>
                 <p>
                   <small
-                    >If you choose a <strong>Partnered</strong> dare, {players.get(
-                      daree
-                    )?.playerName} will have the opportunity to decline and either
-                    ask you to choose a <strong>Solo</strong> dare, or counteroffer.</small
+                    >If you choose a <strong>Partnered</strong>
+                    dare, {players.get(daree)?.playerName} will have the opportunity
+                    to decline and either ask you to choose a
+                    <strong>Solo</strong> dare, or counteroffer.</small
                   >
                 </p>
               </div>
@@ -684,7 +701,9 @@
                 <p>socketServerError</p>
               {/if}
               {#if dareePartneredDares.length}
-                <h3>{players.get(daree)?.playerName}'s Partnered Dares</h3>
+                <h3>
+                  {players.get(daree)?.playerName}'s Partnered Dares
+                </h3>
                 <ul>
                   {#each dareePartneredDares as dare (dare.dareId)}
                     <li>
@@ -702,7 +721,9 @@
                   {/each}
                 </ul>
               {/if}
-              <h3>{players.get(daree)?.playerName}'s Solo Dares</h3>
+              <h3>
+                {players.get(daree)?.playerName}'s Solo Dares
+              </h3>
               <ul>
                 {#each dareeSoloDares as dare (dare.dareId)}
                   <li>
@@ -727,9 +748,12 @@
             {:else if clientIsDarer && darerTurnStage === darerTurnStages.DECLINED}
               <p>
                 {players.get(daree)?.playerName} declined the dare you selected.
-                Please choose one of their <strong>Solo</strong> dares:
+                Please choose one of their
+                <strong>Solo</strong> dares:
               </p>
-              <h3>{players.get(daree)?.playerName}'s Solo Dares</h3>
+              <h3>
+                {players.get(daree)?.playerName}'s Solo Dares
+              </h3>
               <ul>
                 {#each dareeSoloDares as dare (dare.dareId)}
                   <li>
@@ -753,7 +777,9 @@
                 Or choose one of {players.get(daree)?.playerName}'s
                 <strong>Solo</strong> dares:
               </p>
-              <h3>{players.get(daree)?.playerName}'s Solo Dares</h3>
+              <h3>
+                {players.get(daree)?.playerName}'s Solo Dares
+              </h3>
               <ul>
                 {#each dareeSoloDares as dare (dare.dareId)}
                   <li>
@@ -766,7 +792,9 @@
                 {/each}
               </ul>
             {:else if clientIsDarer && darerTurnStage === darerTurnStages.END}
-              <p>You dared {players.get(daree)?.playerName} to:</p>
+              <p>
+                You dared {players.get(daree)?.playerName} to:
+              </p>
               <DisplayDare dare={currentDare} />
               <!-- {#if currentDare.timer}
                 TODO build timer
@@ -836,7 +864,9 @@
                 >
               </div>
             {:else if clientIsDaree && dareeTurnStage === dareeTurnStages.CHOSEN}
-              <p>{players.get(darer)?.playerName} landed on you!</p>
+              <p>
+                {players.get(darer)?.playerName} landed on you!
+              </p>
               <p>
                 {players.get(darer)?.playerName} is selecting a dare for you.
               </p>
@@ -907,7 +937,9 @@
                     >
                   </p>
                 </div>
-                <h3>{players.get(darer)?.playerName}'s Partnered Dares</h3>
+                <h3>
+                  {players.get(darer)?.playerName}'s Partnered Dares
+                </h3>
                 <ul>
                   {#each darerPartneredDares as dare (dare.dareId)}
                     <li>
@@ -998,7 +1030,9 @@
               </p>
               <DisplayDare dare={currentDare} />
             {:else if clientIsDaree && dareeTurnStage === dareeTurnStages.END}
-              <p>{players.get(darer)?.playerName} dared you to:</p>
+              <p>
+                {players.get(darer)?.playerName} dared you to:
+              </p>
               <DisplayDare dare={currentDare} />
               <!-- {#if currentDare.timer}
               TODO build timer
@@ -1100,7 +1134,9 @@
         <div class="chatlog-container">
           <ul class="chatlog" role="log" bind:this={chatlogScroll}>
             {#each chatlog as chat}
-              <li><strong>{chat.playerName}: </strong>{chat.message}</li>
+              <li>
+                <strong>{chat.playerName}: </strong>{chat.message}
+              </li>
             {/each}
             {#each pendingChats as chat}
               <li class="pending-chat">
@@ -1286,8 +1322,9 @@
       Choose 3-10 dares you want to do. You must always have at least 2 <strong
         >Solo</strong
       >
-      dares. You should be prepared to do any of your <strong>Solo</strong> dares
-      at any time. You can update your dares throughout the game.
+      dares. You should be prepared to do any of your
+      <strong>Solo</strong> dares at any time. You can update your dares throughout
+      the game.
     </p>
     <section class="db-dares">
       <h3>All Dares</h3>
@@ -1397,7 +1434,10 @@
                             removed: false,
                             errors: [],
                             dareToAddId: nanoid(),
-                            parentDare: { ...variant, children: [] },
+                            parentDare: {
+                              ...variant,
+                              children: [],
+                            },
                             replaceParent: false,
                           },
                         ];
@@ -1432,12 +1472,18 @@
                           if (dare.partnered) {
                             partneredDaresToSave = [
                               ...partneredDaresToSave,
-                              { ...dare, children: [] },
+                              {
+                                ...dare,
+                                children: [],
+                              },
                             ];
                           } else {
                             soloDaresToSave = [
                               ...soloDaresToSave,
-                              { ...dare, children: [] },
+                              {
+                                ...dare,
+                                children: [],
+                              },
                             ];
                           }
                         }
@@ -1552,7 +1598,10 @@
                       removed: false,
                       errors: [],
                       dareToAddId: nanoid(),
-                      parentDare: { ...variant, children: [] },
+                      parentDare: {
+                        ...variant,
+                        children: [],
+                      },
                       replaceParent: false,
                     },
                   ];
@@ -1655,7 +1704,7 @@
                       return;
                     }
                     markNewIds = [dareAdded.data.dareId];
-                    GameNewDareIds = [...GameNewDareIds, dareAdded.data.dareId];
+                    gameNewDareIds = [...gameNewDareIds, dareAdded.data.dareId];
                     if (dareAdded.data.partnered) {
                       partneredDaresToSave = [
                         ...partneredDaresToSave.filter((dareInList) => {
@@ -1779,7 +1828,7 @@
                 markNewIds = [];
                 const newDareIds = daresAdded.map(({ dareId }) => dareId);
                 markNewIds = [...newDareIds];
-                GameNewDareIds = [...GameNewDareIds, ...newDareIds];
+                gameNewDareIds = [...gameNewDareIds, ...newDareIds];
                 soloDaresToSave = [
                   ...soloDaresToSave.filter((dare) => {
                     const dareToAdd = daresToAdd.find(
@@ -2010,8 +2059,18 @@
           clientPartneredDares = [...partneredDaresToSave];
           clientSoloDares = [...soloDaresToSave];
           markNewIds = [];
-          // socket event update client dares
-          // socket event update new game dares
+          const gameDares = [...clientSoloDares, ...clientPartneredDares].map(
+            (dare) => {
+              return {
+                dareId: dare.dareId,
+                dareText: dare.dareText,
+                partnered: dare.partnered,
+                timer: dare.timer,
+              };
+            }
+          );
+          socket.emit("updateDares", gameDares);
+          socket.emit("updateAddedDares", gameNewDareIds);
           daresModal.close();
         }}>Save</Button
       >
